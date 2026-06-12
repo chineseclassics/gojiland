@@ -1,0 +1,18 @@
+{
+  "name": "@gojiland/platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/sync-catalog.mjs && vite --host 0.0.0.0",
+    "build": "node ../../scripts/sync-catalog.mjs && tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4",
+    "wrangler": "^4.69.0"
+  }
+}
+

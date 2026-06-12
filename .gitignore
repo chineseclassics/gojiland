@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.log
+tmp/
+apps/platform/public/catalog/apps.json

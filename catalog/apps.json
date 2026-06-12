@@ -1,0 +1,15 @@
+[
+  {
+    "id": "mystery-number-box",
+    "title": "神秘數字盒",
+    "titleEn": "Mystery Number Box",
+    "description": "猜一猜、想一想，找出藏在盒子裡的神秘數字。",
+    "descriptionEn": "Guess, think, and discover the secret number.",
+    "subject": "Mathematics",
+    "ageRange": "6–10",
+    "status": "published",
+    "featured": true,
+    "url": "https://gojiland-mystery-number-box.gnoluy.workers.dev",
+    "accent": "#f36b3f"
+  }
+]
