@@ -34,9 +34,9 @@ introduced later only when real duplication justifies it.
 
 | Setting | Value |
 | --- | --- |
-| Root directory | `/` |
-| Build command | `npm --prefix apps/platform install && npm --prefix apps/platform run build` |
-| Deploy command | `npx wrangler deploy --cwd apps/platform` |
+| Root directory | `/apps/platform` |
+| Build command | `npm install && npm run build` |
+| Deploy command | `npx wrangler deploy` |
 | Watch paths | `apps/platform/**`, `catalog/**`, `scripts/**` |
 
 ### Mystery Number Box
