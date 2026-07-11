@@ -43,12 +43,12 @@ if (!root) throw new Error('Missing #app root');
 
 const themes: Record<PortalId, PortalTheme> = {
   meadow: {
-    name: '花園橋',
-    lesson: '觀察路上的顏色和形狀：綠色方塊可以撞碎，木頭物品要繞過。',
-    sky: 0x9edaf2,
-    ground: 0x75c56d,
-    bridge: 0xf0c46b,
-    accent: 0xff725e
+    name: 'Portal 1: 白色起點',
+    lesson: '第一關先練習慢慢推球。輕推會前進，放手後球會自己慢下來。',
+    sky: 0xdbe9ee,
+    ground: 0xe4eee1,
+    bridge: 0xf7f4e8,
+    accent: 0x9bc9a5
   },
   sky: {
     name: '雲朵橋',
@@ -120,13 +120,13 @@ root.innerHTML = `
           <div class="brand-mark">R</div>
           <div class="brand-title">
             <strong>Rollance</strong>
-            <span id="portal-name">花園橋</span>
+            <span id="portal-name">Portal 1: 白色起點</span>
           </div>
         </div>
         <div class="stats" aria-live="polite">
           <div class="stat"><span>Lives</span><strong id="lives">5</strong></div>
           <div class="stat"><span>Coins</span><strong id="coins">0</strong></div>
-          <div class="stat"><span>Level</span><strong id="level">1</strong></div>
+          <div class="stat"><span>Ball Lv.</span><strong id="level">1</strong></div>
           <div class="stat"><span>Keys</span><strong id="keys">0</strong></div>
         </div>
       </div>
@@ -155,7 +155,7 @@ root.innerHTML = `
     <section id="start-overlay" class="overlay">
       <div class="start-card">
         <h1>Rollance</h1>
-        <p>一顆小球在低多邊形玩具橋上冒險。撞碎綠色方塊、避開日常物品、收集 Portal 卡包和金幣，學會觀察形狀、速度和路線。</p>
+        <p>一顆小球在低多邊形玩具橋上慢慢冒險。先從白色起點練習手感，再收集 Portal 卡包、金幣和形狀觀察提示。</p>
         <div class="feature-grid">
           <div class="feature">1-5 人本機輪流模式</div>
           <div class="feature">金色卡包進入 Super Bonus</div>
@@ -224,9 +224,16 @@ let lastFrame = performance.now();
 let inputVector = new THREE.Vector2(0, 0);
 let pointerId: number | null = null;
 let messageTimer = 0;
+let respawnCooldown = 0;
+
+const CONTROL_FORCE_X = 5.8;
+const CONTROL_FORCE_Z = 8.2;
+const MAX_BALL_SPEED = 5.8;
+const IDLE_BRAKE = 0.88;
+const FALL_Y = -14;
 
 await (RAPIER.init as unknown as (options: Record<string, never>) => Promise<void>)({});
-world = new RAPIER.World({ x: 0, y: -13.5, z: 0 });
+world = new RAPIER.World({ x: 0, y: -10.6, z: 0 });
 
 setupUI();
 createWorld('meadow');
@@ -281,7 +288,7 @@ function setupUI(): void {
   startButton.addEventListener('click', () => {
     appState.started = true;
     startOverlay.classList.add('hidden');
-    showMessage('推動小球，先吃金幣，再進 Portal。');
+    showMessage('輕輕推動小球。放手後它會自己慢下來。');
   });
 
   hintButton.addEventListener('click', () => {
@@ -291,7 +298,7 @@ function setupUI(): void {
     }
     appState.hints -= 1;
     saveProfile();
-    showMessage('提示：看陰影，窄橋前先放慢。');
+    showMessage('提示：輕推，不要一直推到底；窄橋前先放手減速。');
   });
 
   chestOverlay.addEventListener('click', (event) => {
@@ -330,37 +337,37 @@ function createWorld(portal: PortalId): void {
 
 function createBridge(theme: PortalTheme): void {
   const baseY = 0;
-  addPlatform(0, baseY, 0, 9, 0.45, 18, theme.bridge);
-  addPlatform(0, baseY, -18, 7, 0.45, 16, theme.bridge);
-  addPlatform(-1.5, baseY, -34, 5.2, 0.45, 14, theme.bridge);
-  addPlatform(1.2, baseY + 0.25, -49, 4.4, 0.45, 14, theme.bridge);
-  addPlatform(0, baseY + 0.7, -66, 6.8, 0.45, 18, theme.bridge);
+  addPlatform(0, baseY, 0, 11, 0.45, 20, theme.bridge);
+  addPlatform(0, baseY, -20, 9, 0.45, 18, theme.bridge);
+  addPlatform(-1.2, baseY, -38, 7.2, 0.45, 16, theme.bridge);
+  addPlatform(0.9, baseY + 0.2, -55, 6.4, 0.45, 16, theme.bridge);
+  addPlatform(0, baseY + 0.6, -74, 8.6, 0.45, 20, theme.bridge);
 
-  addRamp(0, 0.28, -57, 5.2, 0.36, 8, -0.14, theme.bridge);
+  addRamp(0, 0.26, -64, 6.8, 0.36, 9, -0.09, theme.bridge);
   addLowPolyRails();
 
   if (appState.portal === 'bonus') {
     for (let index = 0; index < 28; index += 1) {
-      addSpecial('coin', Math.sin(index * 0.72) * 2.3, 1.05, -4 - index * 1.75, 0xffcf33, 10);
+      addSpecial('coin', Math.sin(index * 0.72) * 2, 1.05, -4 - index * 1.75, 0xffcf33, 10);
     }
     addSpecial('finish', 0, 1.12, -62, 0x67db73);
     return;
   }
 
-  addBreakableBlock(-2.2, 0.82, -11);
-  addBreakableBlock(0.3, 0.82, -13.5);
-  addBreakableBlock(2.4, 0.82, -16);
-  addSolidObject(-2.2, 0.95, -24, 'book');
-  addSolidObject(2.1, 0.86, -28, 'cup');
-  addPushBall(0, 1.08, -39);
-  addBreakableBlock(-1.4, 1.1, -45);
-  addCoinTrail(-2.4, -5, 6);
-  addCoinTrail(2.3, -23, 5);
-  addCoinTrail(0, -52, 8);
-  addSpecial('checkpoint', 0, 0.82, -31, 0x57c1ff);
-  addSpecial('goldpack', 1.6, 1.05, -36, 0xffcf33);
-  addSpecial('key', -1.6, 1.04, -60, 0xffd447);
-  addSpecial('finish', 0, 1.12, -74, 0x67db73);
+  addBreakableBlock(-2.4, 0.82, -12);
+  addBreakableBlock(0.4, 0.82, -15);
+  addBreakableBlock(2.6, 0.82, -18);
+  addSolidObject(-2.7, 0.95, -28, 'book');
+  addSolidObject(2.6, 0.86, -32, 'cup');
+  addPushBall(0, 1.08, -44);
+  addBreakableBlock(-1.5, 1.1, -51);
+  addCoinTrail(-2.2, -5, 6);
+  addCoinTrail(2.4, -27, 5);
+  addCoinTrail(0, -59, 8);
+  addSpecial('checkpoint', 0, 0.82, -35, 0x57c1ff);
+  addSpecial('goldpack', 1.9, 1.05, -42, 0xffcf33);
+  addSpecial('key', -1.8, 1.04, -68, 0xffd447);
+  addSpecial('finish', 0, 1.12, -84, 0x67db73);
 }
 
 function addPlatform(x: number, y: number, z: number, sx: number, sy: number, sz: number, color: number): void {
@@ -393,8 +400,8 @@ function addRamp(x: number, y: number, z: number, sx: number, sy: number, sz: nu
 
 function addLowPolyRails(): void {
   const railMaterial = new THREE.MeshStandardMaterial({ color: 0x8b623f, roughness: 0.9 });
-  for (const z of [-10, -26, -44, -63]) {
-    for (const x of [-4.7, 4.7]) {
+  for (const z of [-10, -28, -48, -72]) {
+    for (const x of [-5.6, 5.6]) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.16, 1.3, 5), railMaterial);
       post.position.set(x, 0.82, z);
       post.castShadow = true;
@@ -440,8 +447,8 @@ function addPushBall(x: number, y: number, z: number): void {
   mesh.position.set(x, y, z);
   mesh.castShadow = true;
   loaderGroup.add(mesh);
-  const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setLinearDamping(0.6).setAngularDamping(0.55));
-  const collider = world.createCollider(RAPIER.ColliderDesc.ball(0.78).setDensity(2.4).setRestitution(0.25), body);
+  const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setLinearDamping(1.2).setAngularDamping(1.1));
+  const collider = world.createCollider(RAPIER.ColliderDesc.ball(0.78).setDensity(3.2).setFriction(1.5).setRestitution(0.12), body);
   obstacleRecords.push({ kind: 'pushball', mesh, body, collider, active: true });
 }
 
@@ -479,10 +486,10 @@ function createBall(): void {
   ballBody = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(appState.checkpoint.x, appState.checkpoint.y, appState.checkpoint.z)
-      .setLinearDamping(0.42)
-      .setAngularDamping(0.38)
+      .setLinearDamping(1.45)
+      .setAngularDamping(1.25)
   );
-  world.createCollider(RAPIER.ColliderDesc.ball(0.62).setDensity(1.25).setFriction(1.05).setRestitution(0.18), ballBody);
+  world.createCollider(RAPIER.ColliderDesc.ball(0.62).setDensity(1.1).setFriction(1.8).setRestitution(0.08), ballBody);
 }
 
 function createDecorations(theme: PortalTheme): void {
@@ -492,7 +499,7 @@ function createDecorations(theme: PortalTheme): void {
   loaderGroup.add(ground);
   decorativeObjects.push(ground);
 
-  for (let index = 0; index < 34; index += 1) {
+  for (let index = 0; index < 18; index += 1) {
     const x = (Math.random() - 0.5) * 70;
     const z = -Math.random() * 86 + 8;
     const scale = 0.65 + Math.random() * 1.35;
@@ -523,13 +530,20 @@ function updateStick(event: PointerEvent): void {
   const rect = controlPad.getBoundingClientRect();
   const dx = event.clientX - rect.left - rect.width / 2;
   const dy = event.clientY - rect.top - rect.height / 2;
-  const radius = rect.width * 0.36;
+  const radius = rect.width * 0.42;
   const length = Math.hypot(dx, dy);
   const limited = Math.min(length, radius);
   const angle = Math.atan2(dy, dx);
   const x = Math.cos(angle) * limited;
   const y = Math.sin(angle) * limited;
-  inputVector.set(x / radius, -y / radius);
+  const raw = new THREE.Vector2(x / radius, -y / radius);
+  const strength = raw.length();
+  if (strength < 0.14) {
+    inputVector.set(0, 0);
+  } else {
+    const easedStrength = Math.min(1, ((strength - 0.14) / 0.86) ** 1.45);
+    inputVector.copy(raw.normalize().multiplyScalar(easedStrength));
+  }
   updateStickVisual(x, y);
 }
 
@@ -555,19 +569,22 @@ function tick(now: number): void {
 }
 
 function updateGame(delta: number): void {
+  if (respawnCooldown > 0) respawnCooldown -= delta;
+
   const force = {
-    x: inputVector.x * 16,
+    x: inputVector.x * CONTROL_FORCE_X,
     y: 0,
-    z: -inputVector.y * 21
+    z: -inputVector.y * CONTROL_FORCE_Z
   };
   ballBody.addForce(force, true);
+  stabilizeBall();
   world.step();
 
   const position = ballBody.translation();
   appState.checkpointZ = Math.min(appState.checkpointZ, position.z);
 
-  if (position.y < -8) {
-    loseLife('掉下橋了，回到最近檢查點。');
+  if (position.y < FALL_Y && respawnCooldown <= 0) {
+    loseLife('掉下橋了，回到檢查點，慢慢再試一次。');
   }
 
   for (const record of obstacleRecords) {
@@ -660,7 +677,7 @@ function addCoins(amount: number, message: string): void {
   const nextLevel = Math.floor(appState.xp / 150) + 1;
   if (nextLevel > appState.level) {
     appState.level = nextLevel;
-    showMessage(`升到 Level ${nextLevel}！`);
+    showMessage(`球升到 Lv. ${nextLevel}！`);
   } else {
     showMessage(message);
   }
@@ -741,19 +758,24 @@ function nextTurnOrRestart(): void {
   appState.lives = 5;
   appState.checkpoint.set(0, 2.2, 0);
   createWorld('meadow');
-  showMessage(`輪到 ${appState.scores[appState.activePlayer]!.name}`);
+  showMessage(`輪到玩家 ${appState.activePlayer + 1}`);
 }
 
 function loseLife(message: string): void {
   appState.lives -= 1;
   if (appState.lives <= 0) {
     appState.lives = 5;
-    appState.activePlayer = (appState.activePlayer + 1) % appState.playerCount;
-    showMessage(`換 ${appState.scores[appState.activePlayer]!.name}。`);
+    if (appState.playerCount > 1) {
+      appState.activePlayer = (appState.activePlayer + 1) % appState.playerCount;
+      showMessage(`輪到玩家 ${appState.activePlayer + 1}`);
+    } else {
+      showMessage('回到檢查點，慢慢再試一次。');
+    }
   } else {
     showMessage(message);
   }
   resetBallToCheckpoint();
+  respawnCooldown = 1.1;
   updateHud();
   renderPlayers();
 }
@@ -762,6 +784,28 @@ function resetBallToCheckpoint(): void {
   ballBody.setTranslation({ x: appState.checkpoint.x, y: appState.checkpoint.y, z: appState.checkpoint.z }, true);
   ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   ballBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+}
+
+function stabilizeBall(): void {
+  const velocity = ballBody.linvel();
+  let nextX = velocity.x;
+  let nextZ = velocity.z;
+
+  if (inputVector.lengthSq() < 0.01) {
+    nextX *= IDLE_BRAKE;
+    nextZ *= IDLE_BRAKE;
+  }
+
+  const horizontalSpeed = Math.hypot(nextX, nextZ);
+  if (horizontalSpeed > MAX_BALL_SPEED) {
+    const scale = MAX_BALL_SPEED / horizontalSpeed;
+    nextX *= scale;
+    nextZ *= scale;
+  }
+
+  if (nextX !== velocity.x || nextZ !== velocity.z) {
+    ballBody.setLinvel({ x: nextX, y: velocity.y, z: nextZ }, true);
+  }
 }
 
 function openChest(kind: string): void {
