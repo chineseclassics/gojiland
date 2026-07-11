@@ -4,13 +4,13 @@
   "version": "0.1.0",
   "description": "A family-managed home for Goji's educational apps.",
   "scripts": {
-    "build": "npm run validate && npm --prefix apps/platform run build && npm --prefix apps/mystery-number-box run build",
+    "build": "npm run validate && npm --prefix apps/platform run build && npm --prefix apps/mystery-number-box run build && npm --prefix apps/rollance run build",
     "build:platform": "npm --prefix apps/platform run build",
     "build:mystery-number-box": "npm --prefix apps/mystery-number-box run build",
+    "build:rollance": "npm --prefix apps/rollance run build",
     "validate": "node scripts/validate-apps.mjs"
   },
   "engines": {
     "node": ">=22"
   }
 }
-

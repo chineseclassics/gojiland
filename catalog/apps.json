@@ -11,5 +11,18 @@
     "featured": true,
     "url": "https://gojiland-mystery-number-box.gnoluy.workers.dev",
     "accent": "#f36b3f"
+  },
+  {
+    "id": "rollance",
+    "title": "Rollance",
+    "titleEn": "Rollance",
+    "description": "測試版：在低多邊形玩具橋上滾動小球，收集 Portal 卡包、金幣和形狀觀察提示。",
+    "descriptionEn": "Beta: Roll a low-poly toy ball across portal bridges, collecting cards, coins, and playful observation hints.",
+    "subject": "STEM",
+    "ageRange": "7–10",
+    "status": "published",
+    "featured": true,
+    "url": "https://gojiland-rollance.gnoluy.workers.dev",
+    "accent": "#75c56d"
   }
 ]
