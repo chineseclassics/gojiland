@@ -24,5 +24,18 @@
     "featured": true,
     "url": "https://gojiland-rollance.gnoluy.workers.dev",
     "accent": "#75c56d"
+  },
+  {
+    "id": "fruit-crossing",
+    "title": "水果森友會",
+    "titleEn": "Fruit Crossing",
+    "description": "接水果、逛小鎮、躲雨吃水果，爸爸和 Goji 的森友會小遊戲。",
+    "descriptionEn": "Catch fruit, explore town, and snack in the rain shelter.",
+    "subject": "Play",
+    "ageRange": "5–10",
+    "status": "published",
+    "featured": true,
+    "url": "https://gojiland-fruit-crossing.gnoluy.workers.dev",
+    "accent": "#19c8b9"
   }
 ]

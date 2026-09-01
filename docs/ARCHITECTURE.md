@@ -48,6 +48,15 @@ introduced later only when real duplication justifies it.
 | Deploy command | `npx wrangler deploy` |
 | Watch paths | `apps/mystery-number-box/**` |
 
+### Fruit Crossing
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `/apps/fruit-crossing` |
+| Build command | `npm install && npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Watch paths | `apps/fruit-crossing/**` |
+
 Connect Git is a one-time Cloudflare Dashboard operation for each Worker.
 
 ## Domains
@@ -64,6 +73,8 @@ Current preview URLs:
 
 - `https://gojiland-platform.gnoluy.workers.dev`
 - `https://gojiland-mystery-number-box.gnoluy.workers.dev`
+- `https://gojiland-rollance.gnoluy.workers.dev`
+- `https://gojiland-fruit-crossing.gnoluy.workers.dev`
 
 ## Data
 

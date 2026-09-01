@@ -10,6 +10,8 @@ their own dependencies, lockfile, build, deployment, and Cloudflare bindings.
 - `apps/platform`: the GojiLand homepage and app catalogue
 - `apps/mystery-number-box`: the first migrated app, originally published as
   `apps/caishuzi` in the Taixu repository
+- `apps/rollance`: beta rolling toy-bridge game
+- `apps/fruit-crossing`: Animal Crossing–inspired fruit catching town game
 
 ## Local development
 

@@ -1,0 +1,141 @@
+/* Tokens inspired by animal-island-ui (ACNH pastoral palette) */
+:root {
+  --ac-primary: #19c8b9;
+  --ac-primary-hover: #3dd4c6;
+  --ac-primary-active: #11a89b;
+  --ac-primary-bg: #e6f9f6;
+
+  --ac-success: #6fba2c;
+  --ac-warning: #f5c31c;
+  --ac-error: #e05a5a;
+
+  --ac-text: #794f27;
+  --ac-text-secondary: #9f927d;
+  --ac-border: #9f927d;
+  --ac-bg: #f8f8f0;
+  --ac-bg-soft: #f7f3df;
+  --ac-bg-secondary: #f0e8d8;
+  --ac-shadow-lip: #bdaea0;
+
+  --ac-pink: #f8a6b2;
+  --ac-purple: #b77dee;
+  --ac-blue: #889df0;
+  --ac-yellow: #f7cd67;
+  --ac-orange: #e59266;
+  --ac-teal: #82d5bb;
+  --ac-green: #8ac68a;
+  --ac-red: #fc736d;
+  --ac-lime: #d1da49;
+  --ac-brown: #9a835a;
+
+  --ac-radius-sm: 12px;
+  --ac-radius: 18px;
+  --ac-radius-lg: 24px;
+  --ac-radius-pill: 50px;
+  --ac-font: 'M PLUS Rounded 1c', 'Nunito', 'Noto Sans TC', sans-serif;
+  --ac-shadow: 0 3px 10px rgba(61, 52, 40, 0.1);
+  --ac-shadow-lg: 0 8px 24px rgba(61, 52, 40, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body, #app {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #88c9b0;
+  color: var(--ac-text);
+  font-family: var(--ac-font);
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+}
+
+/* Shared Animal Crossing-style pill button */
+.ac-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--ac-radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ac-text);
+  background: var(--ac-bg);
+  box-shadow: 0 4px 0 0 var(--ac-shadow-lip);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ac-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 var(--ac-shadow-lip);
+}
+.ac-btn-block {
+  width: 100%;
+}
+.ac-btn-teal { background: var(--ac-teal); color: #fff; box-shadow: 0 4px 0 0 #5fb99c; }
+.ac-btn-teal:active { box-shadow: 0 1px 0 0 #5fb99c; }
+.ac-btn-green { background: var(--ac-green); color: #fff; box-shadow: 0 4px 0 0 #6aaa6a; }
+.ac-btn-green:active { box-shadow: 0 1px 0 0 #6aaa6a; }
+.ac-btn-yellow { background: var(--ac-yellow); color: var(--ac-text); box-shadow: 0 4px 0 0 #d4ad45; }
+.ac-btn-yellow:active { box-shadow: 0 1px 0 0 #d4ad45; }
+.ac-btn-orange { background: var(--ac-orange); color: #fff; box-shadow: 0 4px 0 0 #c4744d; }
+.ac-btn-orange:active { box-shadow: 0 1px 0 0 #c4744d; }
+.ac-btn-blue { background: var(--ac-blue); color: #fff; box-shadow: 0 4px 0 0 #6a7fd4; }
+.ac-btn-blue:active { box-shadow: 0 1px 0 0 #6a7fd4; }
+.ac-btn-pink { background: var(--ac-pink); color: #fff; box-shadow: 0 4px 0 0 #e08998; }
+.ac-btn-pink:active { box-shadow: 0 1px 0 0 #e08998; }
+.ac-btn-purple { background: var(--ac-purple); color: #fff; box-shadow: 0 4px 0 0 #9763cc; }
+.ac-btn-purple:active { box-shadow: 0 1px 0 0 #9763cc; }
+.ac-btn-red { background: var(--ac-red); color: #fff; box-shadow: 0 4px 0 0 #d85a55; }
+.ac-btn-red:active { box-shadow: 0 1px 0 0 #d85a55; }
+.ac-btn-cream {
+  background: var(--ac-bg);
+  color: var(--ac-text);
+  box-shadow: 0 4px 0 0 var(--ac-shadow-lip);
+}
+.ac-btn-cream:active { box-shadow: 0 1px 0 0 var(--ac-shadow-lip); }
+
+.ac-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--ac-bg);
+  color: var(--ac-text);
+  border-radius: var(--ac-radius-pill);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: var(--ac-shadow);
+}
+
+.ac-stat {
+  background: var(--ac-bg-soft);
+  color: var(--ac-text);
+  border-radius: 16px;
+  padding: 6px 10px;
+  min-width: 52px;
+  box-shadow: var(--ac-shadow);
+}
+.ac-stat small {
+  display: block;
+  font-size: 10px;
+  color: var(--ac-text-secondary);
+  font-weight: 700;
+}
+.ac-stat b {
+  font-size: 15px;
+  color: var(--ac-text);
+}
