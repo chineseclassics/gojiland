@@ -1,4 +1,4 @@
-import type { FallItem, ShopDecor, ShopFood } from './types'
+import type { FallItem, ShopDecor, ShopSeed } from './types'
 
 export const SAVE_KEY = 'fruitcrossing-v2'
 export const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'] as const
@@ -13,24 +13,20 @@ export const FRUITS_DATA: Omit<FallItem, 'x' | 'y' | 'r'>[] = [
   { name: '大便', emoji: '💩', pts: 0, speed: 165, type: 'POOP' },
 ]
 
-export const VEGGIES_DATA: Omit<FallItem, 'x' | 'y' | 'r'>[] = [
-  { name: '西蘭花', emoji: '🥦', pts: 10, speed: 140, type: 'VEGGIE' },
-  { name: '胡蘿蔔', emoji: '🥕', pts: 14, speed: 160, type: 'VEGGIE' },
-  { name: '青菜', emoji: '🥬', pts: 18, speed: 175, type: 'VEGGIE' },
-  { name: '茄子', emoji: '🍆', pts: 22, speed: 190, type: 'VEGGIE' },
-  { name: '黃瓜', emoji: '🥒', pts: 26, speed: 210, type: 'VEGGIE' },
-  { name: '金色蔬菜', emoji: '🌟', pts: 50, speed: 240, type: 'RARE' },
-  { name: '大便', emoji: '💩', pts: 0, speed: 165, type: 'POOP' },
+export const SHOP_SEEDS: ShopSeed[] = [
+  { name: '🍇 葡萄種子', price: 60 },
+  { name: '🥭 榴蓮種子', price: 90 },
+  { name: '⭐ 金色果實種子', price: 160 },
 ]
 
-export const SHOP_FOOD: ShopFood[] = [
-  { name: '🍎 蘋果', price: 10, sell: 8 },
-  { name: '🍌 香蕉', price: 15, sell: 10 },
-  { name: '🍊 橘子', price: 20, sell: 12 },
-  { name: '🥭 榴蓮', price: 28, sell: 16 },
-  { name: '🥦 西蘭花', price: 12, sell: 8 },
-  { name: '🥕 胡蘿蔔', price: 15, sell: 10 },
-]
+export const FRUIT_SELL: Record<string, number> = {
+  '🍎 蘋果': 8,
+  '🍌 香蕉': 10,
+  '🍊 橘子': 12,
+  '🍇 葡萄': 18,
+  '🥭 榴蓮': 22,
+  '⭐ 金色果實': 40,
+}
 
 export const SHOP_DECOR: ShopDecor[] = [
   { name: '🪵 木製小椅', price: 40 },
@@ -40,12 +36,20 @@ export const SHOP_DECOR: ShopDecor[] = [
   { name: '🧸 熊熊玩偶', price: 35 },
 ]
 
-export const SELL_MAP = Object.fromEntries(SHOP_FOOD.map((it) => [it.name, it.sell]))
+export function isOrdinarySeed(item: string): boolean {
+  return item.includes('蘋果種子') || item.includes('香蕉種子') || item.includes('橘子種子')
+}
+
+export function fruitSellPrice(item: string): number | null {
+  if (item.includes('種子')) return null
+  return FRUIT_SELL[item] ?? null
+}
 
 export const PLACES = {
-  home: { kind: 'home' as const, x: 0.12, y: 0.28, w: 0.18, h: 0.24 },
-  shed: { kind: 'shed' as const, x: 0.4, y: 0.3, w: 0.18, h: 0.22 },
-  shop: { kind: 'shop' as const, x: 0.66, y: 0.26, w: 0.22, h: 0.28 },
+  home: { kind: 'home' as const, x: 0.04, y: 0.22, w: 0.17, h: 0.24 },
+  hotel: { kind: 'hotel' as const, x: 0.23, y: 0.16, w: 0.2, h: 0.3 },
+  shed: { kind: 'shed' as const, x: 0.46, y: 0.28, w: 0.16, h: 0.2 },
+  shop: { kind: 'shop' as const, x: 0.66, y: 0.2, w: 0.24, h: 0.28 },
 }
 
 export function todayLabel(): string {

@@ -1,15 +1,25 @@
-import { computed, reactive, readonly } from 'vue'
-import { FRUITS_DATA, SAVE_KEY, SELL_MAP, SHOP_DECOR, SHOP_FOOD, VEGGIES_DATA, isSunday, todayLabel } from '../constants'
-import type { Basket, CatchType, GameState, HairStyle, Keys, PlaceKind, ShopTab, TownPlayer } from '../types'
-import { playSound } from './audio'
+import { computed, reactive, readonly, shallowRef } from 'vue'
+import { FRUITS_DATA, SAVE_KEY, SHOP_DECOR, SHOP_SEEDS, fruitSellPrice, isOrdinarySeed, isSunday, todayLabel } from '../constants'
+import type { Basket, GameState, HairStyle, Keys, PlaceKind, ShopTab, TownPlayer } from '../types'
+import { isMuted, playSound, setRainAmbience, toggleMute, unlockAudio } from './audio'
 import { placeRects } from './draw'
+import {
+  FLASH_CARD_COST,
+  albumSlots,
+  countFruitStacks,
+  fruitCardSpec,
+  fruitNameFromBagItem,
+  isFlashCard,
+  makeFlashCard,
+} from './flashCards'
+import { guestById, remainingGuests } from './hotelGuests'
 import { clockLabel, dayPeriodFromHour, fetchWeatherCode, hourNow, isRainCode, isThunderCode, weatherLabel } from './weather'
 
 function defaultState(): GameState {
   return {
     mode: 'CATCH',
-    catchType: 'FRUIT',
     paused: false,
+    animTime: 0,
     finished: false,
     inShelter: false,
     raining: false,
@@ -29,10 +39,21 @@ function defaultState(): GameState {
     money: 100,
     backpack: ['🍎 蘋果', '🍌 香蕉'],
     furniture: ['🪵 木製小椅', '🪴 綠色盆栽'],
+    flashCards: [],
+    inspectOpen: false,
+    inspectName: '',
+    inspectFlipped: true,
+    inspectReveal: false,
     mrGifted: false,
-    shopTab: 'fruits',
+    shopTab: 'seeds',
     interactLock: 0,
     nearPlace: '',
+    hotelOpen: false,
+    visitedGuests: [],
+    todayGuestId: '',
+    guestDate: '',
+    guestTalkIdx: 0,
+    guestDialog: '',
     width: 800,
     height: 500,
     spawnAcc: 0,
@@ -50,21 +71,38 @@ function defaultState(): GameState {
     summaryTitle: '遊戲完成！',
     shelterEatMsg: '點下面按鈕就會吃一顆。',
     shelterEatOk: true,
-    mrDialog: '「你好啊！今天是星期日，我來商店看看新鮮的水果！」',
+    mrDialog: '「星期天我才來換閃卡。平常買賣去找老闆。」',
   }
 }
 
 export function useFruitGame() {
   const state = reactive<GameState>(defaultState())
   const basket = reactive<Basket>({ x: 400, y: 430, w: 72, h: 26, targetX: 400, squash: 1 })
-  const townPlayer = reactive<TownPlayer>({ x: 220, y: 280, speed: 220, hairStyle: 'short', shirtColor: '#ef4444' })
+  const townPlayer = reactive<TownPlayer>({ x: 420, y: 360, speed: 220, hairStyle: 'short', shirtColor: '#ef4444' })
   const keys = reactive<Keys>({ left: false, right: false, up: false, down: false })
 
   let toastTimer = 0
+  let inspectTimer = 0
+  let stepAcc = 0
+  let lastNear: PlaceKind = ''
+  const muted = shallowRef(isMuted())
+
+  function syncRain() {
+    const storm = state.raining || state.thunder
+    const hush = state.inShelter || state.paused || state.finished
+    setRainAmbience(storm && !state.finished, hush)
+  }
   const dateText = computed(() => `${todayLabel()}　${clockLabel(state.dayPeriod)}`)
   const weatherText = computed(() => weatherLabel(state))
+  const fruitStacks = computed(() => countFruitStacks(state.backpack))
+  const cardAlbum = computed(() => albumSlots(state.flashCards))
+  const inspectHint = computed(() =>
+    state.inspectReveal
+      ? '按住拖曳把玩 · 輕點空白收進小屋'
+      : '按住拖曳，可翻到背面 · 輕點空白放下',
+  )
   const anyModal = computed(() =>
-    state.sundayOpen || state.shelterOpen || state.shopOpen || state.homeOpen || state.customOpen || state.pauseOpen || state.summaryOpen,
+    state.sundayOpen || state.shelterOpen || state.shopOpen || state.homeOpen || state.hotelOpen || state.customOpen || state.pauseOpen || state.summaryOpen || state.inspectOpen,
   )
   const blocked = computed(() => state.paused || state.finished || state.inShelter || anyModal.value)
   const storming = computed(() => state.raining || state.thunder)
@@ -83,10 +121,14 @@ export function useFruitGame() {
       eaten: state.eaten,
       backpack: state.backpack,
       furniture: state.furniture,
+      flashCards: state.flashCards,
       hairStyle: townPlayer.hairStyle,
       shirtColor: townPlayer.shirtColor,
       mrGifted: state.mrGifted,
       giftDate: todayLabel(),
+      visitedGuests: state.visitedGuests,
+      todayGuestId: state.todayGuestId,
+      guestDate: state.guestDate,
     }))
   }
 
@@ -97,19 +139,33 @@ export function useFruitGame() {
         eaten: number
         backpack: string[]
         furniture: string[]
+        flashCards: unknown[]
         hairStyle: HairStyle
         shirtColor: string
         mrGifted: boolean
         giftDate: string
+        visitedGuests: string[]
+        todayGuestId: string
+        guestDate: string
       }> | null
       if (!data) return
       if (Number.isFinite(data.money)) state.money = data.money as number
       if (Number.isFinite(data.eaten)) state.eaten = Math.max(0, Math.min(20, data.eaten as number))
       if (Array.isArray(data.backpack)) state.backpack = data.backpack
       if (Array.isArray(data.furniture)) state.furniture = data.furniture
+      if (Array.isArray(data.flashCards)) state.flashCards = data.flashCards.filter(isFlashCard)
       if (data.hairStyle) townPlayer.hairStyle = data.hairStyle
       if (data.shirtColor) townPlayer.shirtColor = data.shirtColor
       if (data.giftDate === todayLabel()) state.mrGifted = !!data.mrGifted
+      if (Array.isArray(data.visitedGuests)) {
+        state.visitedGuests = data.visitedGuests.filter((id): id is string => typeof id === 'string')
+      }
+      if (data.guestDate === todayLabel() && typeof data.todayGuestId === 'string' && data.todayGuestId) {
+        state.todayGuestId = data.todayGuestId
+        state.guestDate = data.guestDate
+        const guest = guestById(state.todayGuestId)
+        if (guest) state.guestDialog = guest.lines[0]
+      }
     } catch {
       /* ignore bad save */
     }
@@ -121,11 +177,13 @@ export function useFruitGame() {
 
   function startRain() {
     state.raining = true
+    syncRain()
     showNotice('外面正在下雨。想躲就進棚子，淋濕也不會壞。')
   }
 
   function stopRain(quiet: boolean) {
     state.raining = false
+    syncRain()
     if (!quiet && !state.thunder) showNotice('雨停了。')
   }
 
@@ -134,6 +192,8 @@ export function useFruitGame() {
     state.raining = true
     state.rainLeft = 20
     state.flash = 0.8
+    syncRain()
+    playSound('thunder')
     showNotice('打雷了！大約 20 秒。被閃電打到就會停。')
   }
 
@@ -142,6 +202,8 @@ export function useFruitGame() {
     state.bolts = []
     state.flash = 0.4
     if (!state.realRaining) state.raining = false
+    syncRain()
+    playSound(reason === 'strike' ? 'strike' : 'close')
     showNotice(reason === 'strike' ? '被閃電打到，雷雨停了！水果濕了但沒壞。' : '雷雨過去了。')
   }
 
@@ -158,7 +220,7 @@ export function useFruitGame() {
   }
 
   function spawnItem() {
-    const pool = state.catchType === 'FRUIT' ? FRUITS_DATA : VEGGIES_DATA
+    const pool = FRUITS_DATA
     const roll = Math.random()
     const template = roll < 0.08
       ? pool.find((it) => it.type === 'RARE')!
@@ -186,9 +248,9 @@ export function useFruitGame() {
       }
       state.pops.push({ x: item.x, y: item.y, text: '糟糕', color: '#7f1d1d', life: 1 })
     } else {
-      playSound('catch')
       state.combo += 1
       state.bestCombo = Math.max(state.bestCombo, state.combo)
+      playSound(item.type === 'RARE' ? 'rare' : 'catch', { combo: state.combo })
       const gained = item.pts + Math.min(20, (state.combo - 1) * 2)
       state.score += gained
       state.backpack.push(`${item.emoji} ${item.name}`)
@@ -201,6 +263,7 @@ export function useFruitGame() {
   function detectPlace(x: number, y: number): PlaceKind {
     const rects = placeRects(state.width, state.height)
     if (x > rects.home.x && x < rects.home.x + rects.home.w && y > rects.home.y && y < rects.home.y + rects.home.h) return 'home'
+    if (x > rects.hotel.x && x < rects.hotel.x + rects.hotel.w && y > rects.hotel.y && y < rects.hotel.y + rects.hotel.h) return 'hotel'
     if (x > rects.shed.x && x < rects.shed.x + rects.shed.w && y > rects.shed.y && y < rects.shed.y + rects.shed.h) return 'shed'
     if (x > rects.shop.x && x < rects.shop.x + rects.shop.w && y > rects.shop.y && y < rects.shop.y + rects.shop.h) return 'shop'
     return ''
@@ -211,9 +274,13 @@ export function useFruitGame() {
     state.interactLock = 0.8
     if (kind === 'shop') openShop()
     else if (kind === 'home') openHome()
+    else if (kind === 'hotel') openHotel()
     else if (kind === 'shed') {
       if (storming.value) enterShelter()
-      else showNotice('現在沒下雨，棚子空空的。')
+      else {
+        playSound('deny')
+        showNotice('現在沒下雨，棚子空空的。')
+      }
     }
   }
 
@@ -230,6 +297,7 @@ export function useFruitGame() {
       if (!state.inShelter && Math.random() < dt * 0.22) {
         state.bolts.push({ x: 40 + Math.random() * (state.width - 80), life: 0.28 })
         state.flash = 1
+        playSound('zap')
       }
       for (let i = state.bolts.length - 1; i >= 0; i--) {
         const b = state.bolts[i]
@@ -276,6 +344,7 @@ export function useFruitGame() {
         catchItem(item)
         state.items.splice(i, 1)
       } else if (item.y > state.height + 30) {
+        if (state.combo > 0) playSound('miss')
         state.combo = 0
         state.items.splice(i, 1)
       }
@@ -310,18 +379,30 @@ export function useFruitGame() {
         vy += dy / dist
       }
     }
+    const moving = Math.hypot(vx, vy) > 0.01
     const len = Math.hypot(vx, vy) || 1
     townPlayer.x += (vx / len) * townPlayer.speed * dt
     townPlayer.y += (vy / len) * townPlayer.speed * dt
     townPlayer.x = Math.min(Math.max(townPlayer.x, 24), state.width - 24)
     townPlayer.y = Math.min(Math.max(townPlayer.y, 24), state.height - 24)
     state.nearPlace = detectPlace(townPlayer.x, townPlayer.y)
+    if (state.nearPlace && state.nearPlace !== lastNear) playSound('near')
+    lastNear = state.nearPlace
+    if (moving) {
+      stepAcc += dt
+      if (stepAcc >= 0.36) {
+        stepAcc = 0
+        playSound('step')
+      }
+    } else {
+      stepAcc = 0
+    }
   }
 
   function stepAwayFromPlace(kind: PlaceKind) {
     if (!kind) return
     const rects = placeRects(state.width, state.height)
-    const b = rects[kind === 'home' ? 'home' : kind === 'shed' ? 'shed' : 'shop']
+    const b = rects[kind]
     const cx = b.x + b.w / 2
     const cy = b.y + b.h / 2
     const dx = townPlayer.x - cx
@@ -347,26 +428,24 @@ export function useFruitGame() {
   }
 
   function togglePause() {
-    if (state.sundayOpen || state.summaryOpen || state.inShelter || state.shopOpen || state.homeOpen || state.customOpen) return
+    if (state.sundayOpen || state.summaryOpen || state.inShelter || state.shopOpen || state.homeOpen || state.hotelOpen || state.customOpen || state.inspectOpen) return
     state.paused = !state.paused
     state.pauseOpen = state.paused
+    syncRain()
+    playSound(state.paused ? 'pause' : 'resume')
   }
 
   function toggleTown() {
     if (state.mode === 'CATCH') {
       state.mode = 'TOWN'
+      playSound('town')
       showNotice('走進小鎮了。點螢幕或拖手指走路，點建築進去。')
     } else {
       state.mode = 'CATCH'
       state.finished = false
+      playSound('orchard')
       showNotice('回到果園，接住掉下來的水果！')
     }
-  }
-
-  function toggleCatchType() {
-    state.catchType = (state.catchType === 'FRUIT' ? 'VEGGIE' : 'FRUIT') as CatchType
-    state.items = []
-    showNotice(state.catchType === 'FRUIT' ? '換成水果模式了！' : '換成蔬菜模式了！')
   }
 
   function enterShelter() {
@@ -375,6 +454,8 @@ export function useFruitGame() {
     state.paused = false
     state.pauseOpen = false
     state.shelterOpen = true
+    syncRain()
+    playSound('door')
     state.shelterEatMsg = state.backpack.length ? '點下面按鈕就會吃一顆。' : '背包是空的，先去接一些再來吃。'
     state.shelterEatOk = state.backpack.length > 0
   }
@@ -394,7 +475,7 @@ export function useFruitGame() {
     }
     const eaten = state.backpack.pop() as string
     state.eaten += 1
-    playSound('catch')
+    playSound('eat')
     state.shelterEatMsg = `吃掉了 ${eaten}！飽足感 ${state.eaten} / 20`
     state.shelterEatOk = true
     persistHud()
@@ -404,6 +485,8 @@ export function useFruitGame() {
     state.inShelter = false
     state.shelterOpen = false
     state.interactLock = 1.2
+    syncRain()
+    playSound('close')
     stepAwayFromPlace('shed')
     if (storming.value) {
       state.playerWet = true
@@ -416,30 +499,37 @@ export function useFruitGame() {
 
   function openShop() {
     state.shopOpen = true
-    state.shopTab = 'fruits'
+    state.shopTab = 'seeds'
+    playSound('open')
   }
   function closeShop() {
     state.shopOpen = false
     state.interactLock = 1.2
+    playSound('close')
     stepAwayFromPlace('shop')
   }
   function switchShopTab(tab: ShopTab) {
+    if (state.shopTab === tab) return
     state.shopTab = tab
+    playSound('tab')
   }
-  function buyFood(name: string, price: number) {
+  function buySeed(name: string, price: number) {
     if (state.money < price) {
       playSound('deny')
-      showNotice('錢不夠，去賣水果吧！')
+      showNotice('錢不夠，先把水果賣給老闆吧！')
       return
     }
     state.money -= price
     state.backpack.push(name)
-    playSound('catch')
+    playSound('buy')
     showNotice(`買下了 ${name}`)
     persistHud()
   }
   function buyDecor(name: string, price: number) {
-    if (state.furniture.includes(name)) return
+    if (state.furniture.includes(name)) {
+      playSound('deny')
+      return
+    }
     if (state.money < price) {
       playSound('deny')
       showNotice('這件家具還買不起。')
@@ -447,45 +537,176 @@ export function useFruitGame() {
     }
     state.money -= price
     state.furniture.push(name)
-    playSound('catch')
+    playSound('buy')
     showNotice(`${name} 搬進小屋了！`)
     persistHud()
   }
   function sellItem(idx: number) {
-    const sold = state.backpack.splice(idx, 1)[0]
-    state.money += SELL_MAP[sold] || 15
-    playSound('catch')
-    showNotice(`賣出了 ${sold}`)
+    const item = state.backpack[idx]
+    if (!item) return
+    if (isOrdinarySeed(item) || item.includes('種子')) {
+      playSound('deny')
+      showNotice('老闆不收種子，普通水果種子更不行。')
+      return
+    }
+    const price = fruitSellPrice(item)
+    if (price == null) {
+      playSound('deny')
+      showNotice('老闆只收水果。')
+      return
+    }
+    state.backpack.splice(idx, 1)
+    state.money += price
+    playSound('sell')
+    showNotice(`賣出了 ${item}`)
     persistHud()
   }
   function talkMrFruit() {
-    playSound('catch')
-    const lines = ['「下雨前記得進棚子。」', '「連擊越高越好吃。」', '「飽了就去消化馬桶。」']
+    if (!isSunday()) {
+      playSound('deny')
+      showNotice('水果先生只在星期天出現。')
+      return
+    }
+    playSound('talk')
+    const ready = fruitStacks.value.filter((it) => it.ready)
+    const lines = ready.length
+      ? [`「${ready[0].name}已經一百顆了，換一張閃卡吧。」`, '「閃卡收在小屋裡，我只負責換卡。」']
+      : ['「一百顆同樣的水果，換一張閃卡。」', '「買賣去找老闆，我星期天只換閃卡。」']
     state.mrDialog = lines[Math.floor(Math.random() * lines.length)]
-    if (!state.mrGifted) {
-      state.mrGifted = true
-      state.backpack.push('🍊 橘子')
-      state.money += 20
-      showNotice('水果先生送你橘子和 20 塊錢！')
-      persistHud()
+  }
+
+  function openInspect(name: string, reveal: boolean) {
+    if (!fruitCardSpec(name)) return
+    window.clearTimeout(inspectTimer)
+    state.inspectName = name
+    state.inspectOpen = true
+    state.inspectReveal = reveal
+    state.inspectFlipped = !reveal
+    playSound(reveal ? 'card' : 'open')
+    if (reveal) {
+      inspectTimer = window.setTimeout(() => {
+        state.inspectFlipped = true
+        playSound('foil')
+      }, 620)
     }
   }
 
-  function openHome() { state.homeOpen = true }
+  function closeInspect() {
+    window.clearTimeout(inspectTimer)
+    state.inspectOpen = false
+    state.inspectReveal = false
+    state.inspectFlipped = true
+    playSound('close')
+  }
+
+  function inspectOwnedCard(name: string) {
+    const owned = state.flashCards.some((card) => card.name === name)
+    if (!owned) return
+    openInspect(name, false)
+  }
+
+  function exchangeFlashCard(name: string) {
+    if (!isSunday()) {
+      playSound('deny')
+      showNotice('水果先生只在星期天換閃卡。')
+      return
+    }
+    if (!fruitCardSpec(name)) {
+      playSound('deny')
+      return
+    }
+    let have = 0
+    for (const item of state.backpack) {
+      if (fruitNameFromBagItem(item) === name) have += 1
+    }
+    if (have < FLASH_CARD_COST) {
+      playSound('deny')
+      state.mrDialog = `「${name}還差 ${FLASH_CARD_COST - have} 顆。」`
+      showNotice(`${name}還不夠一百顆。`)
+      return
+    }
+    let removed = 0
+    for (let i = state.backpack.length - 1; i >= 0 && removed < FLASH_CARD_COST; i--) {
+      if (fruitNameFromBagItem(state.backpack[i]) === name) {
+        state.backpack.splice(i, 1)
+        removed += 1
+      }
+    }
+    const card = makeFlashCard(name)
+    state.flashCards.push(card)
+    state.mrDialog = `「一百顆${name}，換成這張閃卡。好好收著。」`
+    showNotice(`換到 ${name} 閃卡！收進小屋了。`)
+    persistHud()
+    openInspect(name, true)
+  }
+
+  function openHotel() {
+    state.hotelOpen = true
+    playSound('door')
+  }
+  function closeHotel() {
+    state.hotelOpen = false
+    state.interactLock = 1.2
+    playSound('close')
+    stepAwayFromPlace('hotel')
+  }
+  function inviteGuest(id: string) {
+    if (state.guestDate === todayLabel() && state.todayGuestId) {
+      playSound('deny')
+      showNotice('今晚已經有旅客了。')
+      return
+    }
+    if (state.visitedGuests.includes(id)) {
+      playSound('deny')
+      showNotice('這個人已經來過，不會再來了。')
+      return
+    }
+    const guest = guestById(id)
+    if (!guest) return
+    state.todayGuestId = id
+    state.guestDate = todayLabel()
+    state.visitedGuests.push(id)
+    state.guestTalkIdx = 0
+    state.guestDialog = guest.lines[0]
+    playSound('talk')
+    showNotice(`${guest.name} 今晚住進來了。`)
+    persistHud()
+  }
+  function talkHotelGuest() {
+    const guest = hotelGuest.value
+    if (!guest) return
+    state.guestTalkIdx = (state.guestTalkIdx + 1) % guest.lines.length
+    state.guestDialog = guest.lines[state.guestTalkIdx]
+    playSound('talk')
+  }
+
+  function openHome() {
+    state.homeOpen = true
+    playSound('door')
+  }
   function closeHome() {
     state.homeOpen = false
     state.interactLock = 1.2
+    playSound('close')
     stepAwayFromPlace('home')
   }
-  function openCustom() { state.customOpen = true }
-  function closeCustom() { state.customOpen = false }
+  function openCustom() {
+    state.customOpen = true
+    playSound('open')
+  }
+  function closeCustom() {
+    state.customOpen = false
+    playSound('close')
+  }
   function changeHair(style: HairStyle) {
     townPlayer.hairStyle = style
+    playSound('custom')
     showNotice('髮型換好了！')
     persistHud()
   }
   function changeShirt(color: string) {
     townPlayer.shirtColor = color
+    playSound('custom')
     showNotice('上衣換好了！')
     persistHud()
   }
@@ -496,11 +717,15 @@ export function useFruitGame() {
     state.pauseOpen = false
     state.summaryTitle = '遊戲完成！'
     state.summaryOpen = true
+    syncRain()
+    playSound('fanfare')
   }
   function closeSummaryToTown() {
     state.summaryOpen = false
     state.finished = false
+    syncRain()
     if (state.mode !== 'TOWN') toggleTown()
+    else playSound('town')
   }
   function restartGame() {
     state.score = 0
@@ -520,12 +745,20 @@ export function useFruitGame() {
     state.fruitsWet = false
     if (!state.realRaining) state.raining = false
     state.mode = 'CATCH'
+    syncRain()
+    playSound('start')
     showNotice('新的一輪開始！')
   }
 
   function closeSunday() {
     state.sundayOpen = false
+    playSound('start')
     showNotice('手指左右滑動，接住掉下來的水果。')
+  }
+
+  function toggleSound() {
+    muted.value = toggleMute()
+    syncRain()
   }
 
   function setBasketX(x: number) {
@@ -580,6 +813,12 @@ export function useFruitGame() {
     window.location.href = '../../index.html'
   }
 
+  const hotelGuest = computed(() => {
+    if (state.guestDate !== todayLabel() || !state.todayGuestId) return null
+    return guestById(state.todayGuestId)
+  })
+  const hotelCandidates = computed(() => remainingGuests(state.visitedGuests))
+
   loadSave()
 
   return {
@@ -591,8 +830,16 @@ export function useFruitGame() {
     dateText,
     weatherText,
     storming,
+    fruitStacks,
+    cardAlbum,
+    inspectHint,
+    hotelGuest,
+    hotelCandidates,
+    muted,
     sunday: computed(() => isSunday()),
-    shopFood: SHOP_FOOD,
+    unlockAudio,
+    toggleSound,
+    shopSeeds: SHOP_SEEDS,
     shopDecor: SHOP_DECOR,
     showNotice,
     persistHud,
@@ -603,19 +850,25 @@ export function useFruitGame() {
     useToilet,
     togglePause,
     toggleTown,
-    toggleCatchType,
     enterShelter,
     eatInShelter,
     leaveShelter,
     openShop,
     closeShop,
     switchShopTab,
-    buyFood,
+    buySeed,
     buyDecor,
     sellItem,
     talkMrFruit,
+    exchangeFlashCard,
+    inspectOwnedCard,
+    closeInspect,
     openHome,
     closeHome,
+    openHotel,
+    closeHotel,
+    inviteGuest,
+    talkHotelGuest,
     openCustom,
     closeCustom,
     changeHair,

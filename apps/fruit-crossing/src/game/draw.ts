@@ -42,7 +42,7 @@ function drawSpriteFit(
   ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh)
 }
 
-function drawBuildingSprite(ctx: CanvasRenderingContext2D, key: 'house' | 'shed' | 'shop', b: Rect) {
+function drawBuildingSprite(ctx: CanvasRenderingContext2D, key: 'house' | 'hotel' | 'shed' | 'shop', b: Rect) {
   const img = getSprite(key)
   if (!img) return false
   const padX = b.w * 0.08
@@ -100,6 +100,27 @@ function drawHomeHouse(ctx: CanvasRenderingContext2D, b: Rect, night: boolean) {
   ctx.fill()
   drawWindow(ctx, b.x + b.w * 0.1, b.y + b.h * 0.22, b.w * 0.22, b.h * 0.28, night)
   drawWindow(ctx, b.x + b.w * 0.68, b.y + b.h * 0.22, b.w * 0.22, b.h * 0.28, night)
+}
+
+function drawHotelInn(ctx: CanvasRenderingContext2D, b: Rect, night: boolean) {
+  if (drawBuildingSprite(ctx, 'hotel', b)) return
+  ctx.fillStyle = '#9a3412'
+  ctx.beginPath()
+  ctx.moveTo(b.x - 8, b.y + 10)
+  ctx.lineTo(b.x + b.w / 2, b.y - 36)
+  ctx.lineTo(b.x + b.w + 8, b.y + 10)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#fde8d0'
+  ctx.fillRect(b.x, b.y, b.w, b.h)
+  ctx.fillStyle = '#fed7aa'
+  ctx.fillRect(b.x + 6, b.y + 8, b.w - 12, b.h * 0.42)
+  ctx.fillStyle = '#9a3412'
+  ctx.fillRect(b.x + b.w * 0.38, b.y + b.h * 0.52, b.w * 0.24, b.h * 0.48)
+  drawWindow(ctx, b.x + b.w * 0.12, b.y + b.h * 0.16, b.w * 0.18, b.h * 0.2, night)
+  drawWindow(ctx, b.x + b.w * 0.7, b.y + b.h * 0.16, b.w * 0.18, b.h * 0.2, night)
+  drawWindow(ctx, b.x + b.w * 0.12, b.y + b.h * 0.58, b.w * 0.18, b.h * 0.2, night)
+  drawWindow(ctx, b.x + b.w * 0.7, b.y + b.h * 0.58, b.w * 0.18, b.h * 0.2, night)
 }
 
 function drawRainShed(ctx: CanvasRenderingContext2D, b: Rect) {
@@ -169,7 +190,7 @@ function drawBolt(ctx: CanvasRenderingContext2D, x: number, height: number) {
 function drawRain(ctx: CanvasRenderingContext2D, state: GameState) {
   const heavy = state.thunder
   const n = heavy ? 90 : 56
-  const now = Date.now()
+  const now = state.animTime * 1000
   for (let r = 0; r < n; r++) {
     const rx = ((r * 97.3 + now * (heavy ? 0.85 : 0.55)) % (state.width + 40)) - 20
     const ry = ((r * 53.1 + now * (heavy ? 1.15 : 0.75)) % (state.height + 30)) - 10
@@ -314,43 +335,118 @@ export function drawAvatar(ctx: CanvasRenderingContext2D, p: TownPlayer) {
   }
 }
 
-export function drawTownScene(ctx: CanvasRenderingContext2D, state: GameState, player: TownPlayer, sunday: boolean) {
-  drawSky(ctx, state)
-  ctx.fillStyle = state.dayPeriod === 'night' ? '#a16207' : '#facc15'
-  ctx.fillRect(state.width * 0.08, state.height * 0.52, state.width * 0.84, 28)
-  // soft grass patches
-  ctx.fillStyle = 'rgba(134, 239, 172, 0.35)'
-  for (let i = 0; i < 8; i++) {
-    const gx = state.width * (0.12 + i * 0.1)
-    const gy = state.height * (0.62 + (i % 3) * 0.06)
+function drawBush(ctx: CanvasRenderingContext2D, x: number, y: number, night: boolean, accent: string) {
+  ctx.fillStyle = night ? '#14532d' : '#2f5a12'
+  ctx.beginPath()
+  ctx.ellipse(x + 2, y + 4, 20, 8, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = night ? '#166534' : '#3f7a18'
+  ctx.beginPath()
+  ctx.ellipse(x, y, 18, 13, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = night ? '#22c55e' : '#65a30d'
+  ctx.beginPath()
+  ctx.ellipse(x - 8, y - 5, 11, 8, -0.35, 0, Math.PI * 2)
+  ctx.ellipse(x + 8, y - 4, 10, 7, 0.3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = accent
+  ctx.beginPath()
+  ctx.arc(x - 7, y - 7, 2.6, 0, Math.PI * 2)
+  ctx.arc(x + 5, y - 6, 2.3, 0, Math.PI * 2)
+  ctx.arc(x + 1, y - 1, 2, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+function blob(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, fill: string) {
+  ctx.fillStyle = fill
+  ctx.beginPath()
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+function drawTownGround(ctx: CanvasRenderingContext2D, w: number, h: number, night: boolean) {
+  ctx.fillStyle = night ? '#1f3d12' : '#3d6b14'
+  ctx.fillRect(0, h * 0.4, w, h * 0.6)
+
+  ctx.fillStyle = night ? '#16300c' : '#2f5a10'
+  for (let i = 0; i < 12; i++) {
     ctx.beginPath()
-    ctx.ellipse(gx, gy, 28, 10, 0, 0, Math.PI * 2)
+    ctx.ellipse(w * (0.05 + (i % 6) * 0.18), h * (0.62 + (i % 4) * 0.08), 48, 18, 0.1 * (i % 3), 0, Math.PI * 2)
     ctx.fill()
   }
+  ctx.fillStyle = night ? '#2d5a1c' : '#4f8a1c'
+  for (let i = 0; i < 9; i++) {
+    ctx.beginPath()
+    ctx.ellipse(w * (0.1 + i * 0.1), h * (0.78 + (i % 2) * 0.05), 40, 14, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  const dirt = night ? '#6b4e2e' : '#c4a06a'
+  const packed = night ? '#7c5c38' : '#d4b184'
+  const dust = night ? '#8b7355' : '#e4d0aa'
+  const yards = [
+    { x: w * 0.125, y: h * 0.5, rx: w * 0.09, ry: 26 },
+    { x: w * 0.33, y: h * 0.5, rx: w * 0.1, ry: 28 },
+    { x: w * 0.54, y: h * 0.52, rx: w * 0.08, ry: 22 },
+    { x: w * 0.78, y: h * 0.5, rx: w * 0.11, ry: 28 },
+  ]
+  for (const yrd of yards) {
+    blob(ctx, yrd.x, yrd.y, yrd.rx, yrd.ry, dirt)
+    blob(ctx, yrd.x, yrd.y + 4, yrd.rx * 0.72, yrd.ry * 0.55, packed)
+  }
+
+  for (let i = 0; i < 36; i++) {
+    const t = i / 35
+    const x = w * (0.02 + t * 0.96)
+    const y = h * 0.58 + Math.sin(t * Math.PI * 2.2) * h * 0.028
+    blob(ctx, x, y, 38 + (i % 4) * 6, 20 + (i % 3) * 3, dirt)
+  }
+  for (let i = 0; i < 32; i++) {
+    const t = i / 31
+    const x = w * (0.03 + t * 0.94)
+    const y = h * 0.585 + Math.sin(t * Math.PI * 2.2) * h * 0.024
+    blob(ctx, x, y, 26 + (i % 3) * 4, 12, packed)
+  }
+  ctx.fillStyle = dust
+  for (let i = 0; i < 28; i++) {
+    const t = i / 27
+    const x = w * (0.04 + t * 0.92)
+    const y = h * 0.59 + Math.sin(t * 7.1) * 8
+    ctx.beginPath()
+    ctx.ellipse(x, y, 6, 3.4, t * 0.9, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  drawBush(ctx, w * 0.1, h * 0.74, night, night ? '#f9a8d4' : '#fb7185')
+  drawBush(ctx, w * 0.42, h * 0.8, night, night ? '#fde68a' : '#facc15')
+  drawBush(ctx, w * 0.62, h * 0.76, night, night ? '#fda4af' : '#fb923c')
+  drawBush(ctx, w * 0.9, h * 0.72, night, night ? '#c4b5fd' : '#a78bfa')
+}
+
+export function drawTownScene(ctx: CanvasRenderingContext2D, state: GameState, player: TownPlayer) {
+  drawSky(ctx, state)
+  const night = state.dayPeriod === 'night'
+  drawTownGround(ctx, state.width, state.height, night)
   const home = pxPlace(PLACES.home, state.width, state.height)
+  const hotel = pxPlace(PLACES.hotel, state.width, state.height)
   const shed = pxPlace(PLACES.shed, state.width, state.height)
   const shop = pxPlace(PLACES.shop, state.width, state.height)
-  const night = state.dayPeriod === 'night'
   drawHomeHouse(ctx, home, night)
+  drawHotelInn(ctx, hotel, night)
   drawRainShed(ctx, shed)
   drawFruitShop(ctx, shop, night)
-  if (sunday) {
-    ctx.font = '26px serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('👴', shop.x + shop.w * 0.18, shop.y + shop.h + 8)
-  }
-  ctx.font = '20px serif'
-  ctx.fillText('🦌', state.width * 0.68, state.height * 0.72)
-  ctx.fillText('🌸', state.width * 0.3, state.height * 0.7)
-  ctx.fillText('🌼', state.width * 0.5, state.height * 0.74)
-  ctx.fillText('🐇', state.width * 0.22, state.height * 0.7)
   drawAvatar(ctx, player)
   ctx.textAlign = 'center'
   if (state.nearPlace) {
     ctx.fillStyle = 'rgba(247, 243, 223, 0.92)'
-    const label = state.nearPlace === 'home' ? '點一下進小屋' : state.nearPlace === 'shed' ? '點一下進棚子' : '點一下進商店'
+    const labels: Record<Exclude<typeof state.nearPlace, ''>, string> = {
+      home: '點一下進小屋',
+      hotel: '點一下進旅館',
+      shed: '點一下進棚子',
+      shop: '點一下進商店',
+    }
+    const label = labels[state.nearPlace]
     ctx.beginPath()
-    // soft speech-bubble-ish pill
     const bw = 180
     const bh = 34
     const bx = state.width / 2 - bw / 2
@@ -367,6 +463,7 @@ export function drawTownScene(ctx: CanvasRenderingContext2D, state: GameState, p
 export function placeRects(width: number, height: number) {
   return {
     home: pxPlace(PLACES.home, width, height),
+    hotel: pxPlace(PLACES.hotel, width, height),
     shed: pxPlace(PLACES.shed, width, height),
     shop: pxPlace(PLACES.shop, width, height),
   }

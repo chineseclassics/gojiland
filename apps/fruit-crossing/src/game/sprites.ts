@@ -1,14 +1,16 @@
 import basketUrl from '../assets/basket.png'
+import hotelUrl from '../assets/hotel.png'
 import houseUrl from '../assets/house.png'
 import playerUrl from '../assets/player.png'
 import shedUrl from '../assets/shed.png'
 import shopUrl from '../assets/shop.png'
 
-export type SpriteKey = 'basket' | 'house' | 'shed' | 'shop' | 'player'
+export type SpriteKey = 'basket' | 'house' | 'hotel' | 'shed' | 'shop' | 'player'
 
 const urls: Record<SpriteKey, string> = {
   basket: basketUrl,
   house: houseUrl,
+  hotel: hotelUrl,
   shed: shedUrl,
   shop: shopUrl,
   player: playerUrl,

@@ -1,10 +1,9 @@
 export type GameMode = 'CATCH' | 'TOWN'
-export type CatchType = 'FRUIT' | 'VEGGIE'
-export type ItemType = 'FRUIT' | 'VEGGIE' | 'RARE' | 'POOP'
+export type ItemType = 'FRUIT' | 'RARE' | 'POOP'
 export type DayPeriod = 'dawn' | 'morning' | 'noon' | 'afternoon' | 'evening' | 'night'
 export type HairStyle = 'short' | 'long' | 'cap' | 'pony' | 'curl'
-export type ShopTab = 'fruits' | 'decor' | 'sell'
-export type PlaceKind = 'home' | 'shed' | 'shop' | ''
+export type ShopTab = 'seeds' | 'decor' | 'sell'
+export type PlaceKind = 'home' | 'hotel' | 'shed' | 'shop' | ''
 
 export interface FallItem {
   name: string
@@ -17,15 +16,19 @@ export interface FallItem {
   r: number
 }
 
-export interface ShopFood {
+export interface ShopSeed {
   name: string
   price: number
-  sell: number
 }
 
 export interface ShopDecor {
   name: string
   price: number
+}
+
+export interface FruitFlashCard {
+  id: string
+  name: string
 }
 
 export interface Rect {
@@ -37,8 +40,8 @@ export interface Rect {
 
 export interface GameState {
   mode: GameMode
-  catchType: CatchType
   paused: boolean
+  animTime: number
   finished: boolean
   inShelter: boolean
   raining: boolean
@@ -58,10 +61,21 @@ export interface GameState {
   money: number
   backpack: string[]
   furniture: string[]
+  flashCards: FruitFlashCard[]
+  inspectOpen: boolean
+  inspectName: string
+  inspectFlipped: boolean
+  inspectReveal: boolean
   mrGifted: boolean
   shopTab: ShopTab
   interactLock: number
   nearPlace: PlaceKind
+  hotelOpen: boolean
+  visitedGuests: string[]
+  todayGuestId: string
+  guestDate: string
+  guestTalkIdx: number
+  guestDialog: string
   width: number
   height: number
   spawnAcc: number

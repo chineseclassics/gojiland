@@ -6,6 +6,7 @@ const s = game.raw
 const dateText = game.dateText
 const weatherText = game.weatherText
 const storming = game.storming
+const muted = game.muted
 </script>
 
 <template>
@@ -22,6 +23,7 @@ const storming = game.storming
       <button class="ac-btn ac-btn-yellow" type="button" @click="game.useToilet">🚽 馬桶 {{ s.eaten }}/20</button>
       <button v-if="storming && !s.inShelter" class="ac-btn ac-btn-blue" type="button" @click="game.enterShelter">☂️ 躲雨</button>
       <button class="ac-btn ac-btn-green" type="button" @click="game.toggleTown">{{ s.mode === 'CATCH' ? '🏡 小鎮' : '🍎 果園' }}</button>
+      <button class="ac-btn ac-btn-cream" type="button" @click="game.toggleSound">{{ muted ? '🔇 靜音' : '🔊 音效' }}</button>
       <button class="ac-btn ac-btn-orange" type="button" @click="game.togglePause">{{ s.paused ? '▶️ 繼續' : '⏸️ 暫停' }}</button>
       <button class="ac-btn ac-btn-red" type="button" @click="game.finishGame">❌ 結束</button>
     </div>

@@ -4,8 +4,10 @@ import GameCanvas from './components/GameCanvas.vue'
 import GameHeader from './components/GameHeader.vue'
 import GameHud from './components/GameHud.vue'
 import GameToast from './components/GameToast.vue'
+import CardInspectOverlay from './components/cards/CardInspectOverlay.vue'
 import CustomizerModal from './components/modals/CustomizerModal.vue'
 import HomeModal from './components/modals/HomeModal.vue'
+import HotelModal from './components/modals/HotelModal.vue'
 import PauseModal from './components/modals/PauseModal.vue'
 import ShelterModal from './components/modals/ShelterModal.vue'
 import ShopModal from './components/modals/ShopModal.vue'
@@ -19,6 +21,11 @@ provide(fruitGameKey, game)
 
 const s = game.raw
 const sunday = game.sunday
+const fruitStacks = game.fruitStacks
+const cardAlbum = game.cardAlbum
+const inspectHint = game.inspectHint
+const hotelGuest = game.hotelGuest
+const hotelCandidates = game.hotelCandidates
 
 const shelterStatus = computed(() => {
   if (s.thunder) return '外面在打雷，出去可能被閃電打到。'
@@ -43,6 +50,7 @@ function onKeyDown(e: KeyboardEvent) {
     if (s.mode === 'TOWN') game.tryEnterPlace(s.nearPlace)
   }
   if (k === 'p') game.togglePause()
+  if (e.key === 'Escape' && s.inspectOpen) game.closeInspect()
 }
 
 function onKeyUp(e: KeyboardEvent) {
@@ -59,6 +67,8 @@ onMounted(() => {
   weatherTimer = window.setInterval(() => {
     void game.refreshWeather()
   }, 10 * 60 * 1000)
+  const unlock = () => game.unlockAudio()
+  window.addEventListener('pointerdown', unlock, { once: true })
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
 })
@@ -92,20 +102,44 @@ onUnmounted(() => {
       :open="s.shopOpen"
       :money="s.money"
       :tab="s.shopTab"
-      :foods="game.shopFood"
+      :seeds="game.shopSeeds"
       :decors="game.shopDecor"
       :backpack="s.backpack"
       :owned="s.furniture"
       :sunday="sunday"
       :dialog="s.mrDialog"
+      :fruit-stacks="fruitStacks"
       @close="game.closeShop"
       @tab="game.switchShopTab"
-      @buy-food="game.buyFood"
+      @buy-seed="game.buySeed"
       @buy-decor="game.buyDecor"
       @sell="game.sellItem"
       @talk="game.talkMrFruit"
+      @exchange="game.exchangeFlashCard"
     />
-    <HomeModal :open="s.homeOpen" :furniture="s.furniture" @close="game.closeHome" />
+    <HotelModal
+      :open="s.hotelOpen"
+      :guest="hotelGuest"
+      :candidates="hotelCandidates"
+      :dialog="s.guestDialog"
+      @close="game.closeHotel"
+      @invite="game.inviteGuest"
+      @talk="game.talkHotelGuest"
+    />
+    <HomeModal
+      :open="s.homeOpen"
+      :furniture="s.furniture"
+      :album="cardAlbum"
+      @close="game.closeHome"
+      @inspect="game.inspectOwnedCard"
+    />
+    <CardInspectOverlay
+      :open="s.inspectOpen"
+      :fruit-name="s.inspectName"
+      :flipped="s.inspectFlipped"
+      :hint="inspectHint"
+      @close="game.closeInspect"
+    />
     <CustomizerModal
       :open="s.customOpen"
       @close="game.closeCustom"

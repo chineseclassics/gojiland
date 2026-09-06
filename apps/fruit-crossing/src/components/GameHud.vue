@@ -13,12 +13,10 @@ const s = game.raw
       <div class="ac-stat"><small>飽足</small><b>{{ s.eaten }}/20</b></div>
       <div class="ac-stat money"><small>金錢</small><b>{{ s.money }}</b></div>
       <div class="ac-stat"><small>背包</small><b>{{ s.backpack.length }}</b></div>
+      <div class="ac-stat"><small>閃卡</small><b>{{ s.flashCards.length }}</b></div>
     </div>
     <div class="hud-actions">
       <button v-if="s.mode === 'TOWN'" class="ac-btn ac-btn-purple" type="button" @click="game.openCustom">👕 換裝</button>
-      <button class="ac-btn ac-btn-yellow" type="button" @click="game.toggleCatchType">
-        {{ s.catchType === 'FRUIT' ? '🍎 水果' : '🥦 蔬菜' }}
-      </button>
     </div>
   </footer>
 </template>

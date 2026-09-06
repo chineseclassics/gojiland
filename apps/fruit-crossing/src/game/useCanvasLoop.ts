@@ -25,12 +25,15 @@ export function useCanvasLoop(canvasRef: Ref<HTMLCanvasElement | null>, game: Fr
     const dt = Math.min(0.033, (ts - last) / 1000)
     last = ts
     const s = game.raw
-    game.updateWeather(dt)
-    if (s.mode === 'CATCH') game.updateCatch(dt)
-    else game.updateTown(dt)
+    if (!s.paused && !s.finished) {
+      s.animTime += dt
+      game.updateWeather(dt)
+      if (s.mode === 'CATCH') game.updateCatch(dt)
+      else game.updateTown(dt)
+    }
     if (ctx) {
       if (s.mode === 'CATCH') drawCatchScene(ctx, s, game.basket)
-      else drawTownScene(ctx, s, game.townPlayer, game.sunday.value)
+      else drawTownScene(ctx, s, game.townPlayer)
     }
     raf = requestAnimationFrame(frame)
   }

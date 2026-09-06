@@ -10,7 +10,7 @@ const emit = defineEmits<{ close: [] }>()
     <div class="center">
       <div class="emoji">👴✨</div>
       <h2>星期日特別提示</h2>
-      <p>今天水果先生會來商店。走進店裡找他說話，可能有禮物。</p>
+      <p>水果先生只在星期天來商店，而且只負責換閃卡。平常把水果賣給老闆，也可以向老闆買稀有種子。</p>
       <button type="button" class="ac-btn ac-btn-green ac-btn-block" @click="emit('close')">知道了，開始玩！🍎</button>
     </div>
   </GameModal>

@@ -1,0 +1,377 @@
+/* 礦物箔閃卡：傾斜視差＋螺鈿折射＋雲母閃點。只掛在揭卡／把玩。 */
+
+.holo-stage {
+  --sx: 0;
+  --sy: 0;
+  --mx: 50%;
+  --my: 50%;
+  --rx: 0deg;
+  --ry: 0deg;
+  --foil: 0.48;
+  --card-ratio: 3 / 4;
+  --fruit-glow: #f3ead4;
+  --fruit-deep: #8b2a22;
+  position: relative;
+  perspective: 920px;
+  perspective-origin: 50% 45%;
+  touch-action: none;
+  user-select: none;
+}
+
+.holo-stage.holo-play {
+  width: min(68vw, calc(64vh * 0.75), 20rem);
+}
+
+.holo-stage.holo-still {
+  width: min(42vw, 11rem);
+}
+
+.holo-stage.holo-thumb {
+  width: 100%;
+  --rx: 8deg;
+  --ry: -16deg;
+  --foil: 0.42;
+}
+
+.holo-flipper {
+  position: relative;
+  z-index: 1;
+  transform-style: preserve-3d;
+}
+
+.holo-card {
+  --thick: 2.5px;
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--card-ratio, 3 / 4);
+  border-radius: 8px;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.holo-stage.holo-play .holo-card {
+  cursor: grab;
+}
+
+.holo-stage.holo-play:active .holo-card {
+  cursor: grabbing;
+}
+
+.holo-edge {
+  position: absolute;
+  background: linear-gradient(180deg, #7a5834 0%, #3a2414 100%);
+  pointer-events: none;
+}
+
+.holo-edge-left,
+.holo-edge-right {
+  top: 0;
+  bottom: 0;
+  width: var(--thick);
+}
+
+.holo-edge-left {
+  left: 0;
+  transform: translateX(-50%) rotateY(90deg);
+}
+
+.holo-edge-right {
+  right: 0;
+  transform: translateX(50%) rotateY(90deg);
+}
+
+.holo-edge-top,
+.holo-edge-bottom {
+  left: 0;
+  right: 0;
+  height: var(--thick);
+}
+
+.holo-edge-top {
+  top: 0;
+  transform: translateY(-50%) rotateX(90deg);
+}
+
+.holo-edge-bottom {
+  bottom: 0;
+  transform: translateY(50%) rotateX(90deg);
+}
+
+.holo-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow:
+    0 0 0 1px rgba(52, 36, 18, 0.55),
+    inset 0 0 0 2px rgba(248, 236, 208, 0.18);
+}
+
+.holo-front {
+  isolation: isolate;
+  transform: translateZ(calc(var(--thick) / 2));
+  background: linear-gradient(180deg, #f3ead4 0%, #e4d3b0 100%);
+}
+
+.holo-back {
+  transform: rotateY(180deg) translateZ(calc(var(--thick) / 2));
+  background: radial-gradient(ellipse at 50% 28%, #f7f0dc 0%, #f3ecd4 58%, #e4d7b4 100%);
+}
+
+.holo-fruit-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12% 10% 14%;
+  background:
+    radial-gradient(ellipse at 50% 28%, var(--fruit-glow) 0%, transparent 58%),
+    linear-gradient(165deg, #f6eed8 0%, #e4d3b0 48%, #d4c09a 100%);
+  color: #3a2414;
+}
+
+.holo-fruit-face::before {
+  content: "";
+  position: absolute;
+  inset: 5.5%;
+  border: 2px solid color-mix(in srgb, var(--fruit-deep) 55%, #3a2414);
+  box-shadow: inset 0 0 0 1px rgba(40, 24, 12, 0.28);
+  pointer-events: none;
+}
+
+.holo-fruit-mark {
+  position: absolute;
+  top: 9%;
+  left: 11%;
+  margin: 0;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  color: #7a5834;
+}
+
+.holo-fruit-emoji {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.4rem;
+  font-size: clamp(4.2rem, 18vw, 5.6rem);
+  line-height: 1;
+  filter: drop-shadow(0 10px 12px rgba(40, 24, 12, 0.22));
+}
+
+.holo-fruit-name {
+  position: relative;
+  z-index: 1;
+  margin: 0.55rem 0 0;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-weight: 700;
+  font-size: clamp(1.35rem, 5.4vw, 1.7rem);
+  letter-spacing: 0.32em;
+}
+
+.holo-fruit-epithet {
+  position: relative;
+  z-index: 1;
+  margin: 0.2rem 0 0;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--fruit-deep);
+}
+
+.holo-foil-back {
+  opacity: calc(var(--foil) * 0.16);
+  filter: brightness(1.08) contrast(1.1) saturate(0.65);
+  mix-blend-mode: soft-light;
+}
+
+.holo-verse {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16% 12% 14%;
+  color: #1a1614;
+  font-family: "Noto Serif TC", "Songti TC", serif;
+}
+
+.holo-verse-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 11.2rem;
+  padding: 0.35rem 0.2rem 0.2rem;
+}
+
+.holo-verse-board {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: center;
+  gap: 1.05em;
+  min-height: 11.5rem;
+}
+
+.holo-verse-col {
+  margin: 0;
+  writing-mode: vertical-rl;
+  font-weight: 700;
+  font-size: clamp(1.35rem, 6vw, 1.85rem);
+  line-height: 1.42;
+  letter-spacing: 0.32em;
+  text-shadow: 0 0 10px rgba(243, 236, 212, 0.95), 0 1px 0 rgba(243, 236, 212, 0.8);
+}
+
+.holo-verse-colophon {
+  margin: 0.85rem 0 0;
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  color: #8b5a2b;
+}
+
+.holo-verse-colophon span {
+  margin-left: 0.55em;
+  letter-spacing: 0.16em;
+}
+
+.holo-verse-seal {
+  position: absolute;
+  right: 11%;
+  bottom: 9%;
+  margin: 0;
+  width: 1.55rem;
+  height: 1.55rem;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #b33a3c;
+  color: #b33a3c;
+  background: rgba(243, 236, 212, 0.72);
+  font-weight: 700;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  writing-mode: vertical-rl;
+}
+
+.holo-foil,
+.holo-glitter,
+.holo-bar,
+.holo-glare,
+.holo-bevel {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.holo-foil {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      hsl(38 72% 58%) 0%,
+      hsl(88 38% 48%) 8%,
+      hsl(198 48% 46%) 16%,
+      hsl(8 62% 50%) 24%,
+      hsl(46 80% 62%) 32%,
+      hsl(160 22% 62%) 40%,
+      hsl(38 72% 58%) 48%
+    ),
+    repeating-linear-gradient(
+      125deg,
+      rgba(18, 12, 8, 0.55) 0%,
+      rgba(210, 180, 110, 0.35) 4%,
+      rgba(240, 230, 200, 0.55) 5.2%,
+      rgba(80, 120, 110, 0.28) 8%,
+      rgba(18, 12, 8, 0.55) 14%
+    );
+  background-size: 260% 260%, 220% 220%;
+  background-position:
+    calc(50% + var(--sx) * -70%) calc(50% + var(--sy) * -70%),
+    calc(50% + var(--sx) * 55%) calc(50% + var(--sy) * 55%);
+  background-blend-mode: color, soft-light;
+  mix-blend-mode: color-dodge;
+  filter: brightness(0.78) contrast(1.65) saturate(1.15);
+  opacity: var(--foil);
+}
+
+.holo-stage.is-front .holo-foil {
+  animation: foil-ignite 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes foil-ignite {
+  0% { filter: brightness(2.1) contrast(2) saturate(1.4); opacity: 0; }
+  45% { opacity: 0.88; }
+  100% { filter: brightness(0.78) contrast(1.65) saturate(1.15); opacity: var(--foil); }
+}
+
+.holo-glitter {
+  background-image: var(--sparkle);
+  background-size: 180% 180%;
+  background-position:
+    calc(50% + var(--sx) * -40%) calc(50% + var(--sy) * -40%);
+  mix-blend-mode: screen;
+  opacity: calc(0.18 + var(--foil) * 0.28);
+}
+
+.holo-bar {
+  background: linear-gradient(
+    calc(118deg + var(--sx) * 18deg),
+    transparent 34%,
+    rgba(255, 236, 190, 0) 42%,
+    rgba(255, 248, 220, 0.55) 49%,
+    rgba(180, 220, 230, 0.28) 52%,
+    rgba(255, 236, 190, 0) 58%,
+    transparent 66%
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+}
+
+.holo-glare {
+  background: radial-gradient(
+    farthest-corner circle at var(--mx) var(--my),
+    rgba(255, 252, 240, 0.78) 0%,
+    rgba(255, 244, 210, 0.22) 22%,
+    rgba(20, 12, 8, 0.08) 70%,
+    transparent 100%
+  );
+  mix-blend-mode: overlay;
+}
+
+.holo-bevel {
+  background: linear-gradient(
+    calc(125deg + var(--sx) * 20deg),
+    rgba(255, 250, 236, 0.42) 0%,
+    transparent 26%,
+    transparent 74%,
+    rgba(20, 10, 6, 0.28) 100%
+  );
+  mix-blend-mode: soft-light;
+  box-shadow: inset 0 0 0 1px rgba(255, 244, 214, 0.22);
+}
+
+.holo-shadow {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -7%;
+  height: 16%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(18, 10, 6, 0.5), transparent 72%);
+  transform: translate3d(calc(var(--sx) * 14px), calc(var(--sy) * 6px), 0);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.holo-stage.holo-thumb .holo-foil,
+.holo-stage.holo-thumb .holo-glitter,
+.holo-stage.holo-thumb .holo-bar,
+.holo-stage.holo-thumb .holo-glare,
+.holo-stage.holo-thumb .holo-bevel {
+  display: none;
+}
