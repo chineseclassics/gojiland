@@ -2,11 +2,17 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gojiland-rollance",
   "compatibility_date": "2026-06-12",
+  "workers_dev": true,
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "dist",
+    "directory": ".worker-dist",
+    "html_handling": "force-trailing-slash",
     "not_found_handling": "single-page-application"
-  }
+  },
+  "routes": [
+    { "pattern": "goji.land/rollance*", "zone_name": "goji.land" },
+    { "pattern": "www.goji.land/rollance*", "zone_name": "goji.land" }
+  ]
 }

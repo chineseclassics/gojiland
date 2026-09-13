@@ -11,6 +11,9 @@ GitHub repository
 ├── catalog/apps.json
 ├── apps/platform             -> gojiland-platform Worker
 ├── apps/mystery-number-box   -> gojiland-mystery-number-box Worker
+├── apps/rollance             -> gojiland-rollance Worker
+├── apps/fruit-crossing       -> gojiland-fruit-crossing Worker
+├── apps/typing-island        -> gojiland-typing-island Worker
 └── future apps               -> one Worker per app
 ```
 
@@ -44,37 +47,68 @@ introduced later only when real duplication justifies it.
 | Setting | Value |
 | --- | --- |
 | Root directory | `/apps/mystery-number-box` |
-| Build command | `npm install && npm run build` |
+| Build command | `npm install && npm run build:worker` |
 | Deploy command | `npx wrangler deploy` |
-| Watch paths | `apps/mystery-number-box/**` |
+| Watch paths | `apps/mystery-number-box/**`, `scripts/**` |
+
+### Rollance
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `/apps/rollance` |
+| Build command | `npm install && npm run build:worker` |
+| Deploy command | `npx wrangler deploy` |
+| Watch paths | `apps/rollance/**`, `scripts/**` |
 
 ### Fruit Crossing
 
 | Setting | Value |
 | --- | --- |
 | Root directory | `/apps/fruit-crossing` |
-| Build command | `npm install && npm run build` |
+| Build command | `npm install && npm run build:worker` |
 | Deploy command | `npx wrangler deploy` |
-| Watch paths | `apps/fruit-crossing/**` |
+| Watch paths | `apps/fruit-crossing/**`, `scripts/**` |
 
-Connect Git is a one-time Cloudflare Dashboard operation for each Worker.
+### Typing Island
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `/apps/typing-island` |
+| Build command | `npm install && npm run build:worker` |
+| Deploy command | `npx wrangler deploy` |
+| Watch paths | `apps/typing-island/**`, `scripts/**` |
+
+Connect Git once on `gojiland-platform`, then run:
+
+```bash
+CLOUDFLARE_API_TOKEN=<Workers Builds Configuration Edit> \
+CLOUDFLARE_ACCOUNT_ID=c6c526daf65c22f6ab0fe6c93f86f160 \
+node scripts/connect-workers-builds.mjs --all
+```
+
+Apps watch `scripts/*` because they share `scripts/build-worker.mjs`. Each app also needs `apps/<app>/.npmrc` with `include=dev`, or Workers Builds will skip Vite and Wrangler.
 
 ## Domains
 
-Before purchasing the domain, Workers deploy to their generated `workers.dev`
-addresses. After `goji.land` is active:
+Public URLs share one hostname. Each app is still an independent Worker; more
+specific path routes win over the platform catch-all.
 
-- `goji.land` -> `gojiland-platform`
-- `mystery-number-box.goji.land` -> `gojiland-mystery-number-box`
+- `goji.land/*` and `www.goji.land/*` -> `gojiland-platform`
+- `goji.land/mystery-number-box*` -> `gojiland-mystery-number-box`
+- `goji.land/rollance*` -> `gojiland-rollance`
+- `goji.land/fruit-crossing*` -> `gojiland-fruit-crossing`
+- `goji.land/typing-island*` -> `gojiland-typing-island`
 
-Use Cloudflare Custom Domains. Do not create routes under `taixu.app`.
+Use Cloudflare zone routes on `goji.land`. Do not create routes under
+`taixu.app`. Do not give each app its own subdomain.
 
-Current preview URLs:
+Current production URLs:
 
-- `https://gojiland-platform.gnoluy.workers.dev`
-- `https://gojiland-mystery-number-box.gnoluy.workers.dev`
-- `https://gojiland-rollance.gnoluy.workers.dev`
-- `https://gojiland-fruit-crossing.gnoluy.workers.dev`
+- `https://goji.land/`
+- `https://goji.land/mystery-number-box/`
+- `https://goji.land/rollance/`
+- `https://goji.land/fruit-crossing/`
+- `https://goji.land/typing-island/`
 
 ## Data
 

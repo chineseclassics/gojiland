@@ -12,6 +12,7 @@ their own dependencies, lockfile, build, deployment, and Cloudflare bindings.
   `apps/caishuzi` in the Taixu repository
 - `apps/rollance`: beta rolling toy-bridge game
 - `apps/fruit-crossing`: Animal Crossing–inspired fruit catching town game
+- `apps/typing-island`: English and pinyin typing adventure island
 
 ## Local development
 
@@ -32,6 +33,5 @@ npm run build
 ## Deployment
 
 Each app is connected to Cloudflare Workers Builds separately. See
-`docs/ARCHITECTURE.md` for the intended build settings and future `goji.land`
-custom domains.
+`docs/ARCHITECTURE.md`. Public apps live at `https://goji.land/<app>/`.
 

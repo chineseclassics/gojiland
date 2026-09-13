@@ -2,12 +2,16 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gojiland-platform",
   "compatibility_date": "2026-06-12",
+  "workers_dev": true,
   "observability": {
     "enabled": true
   },
   "assets": {
     "directory": "dist",
     "not_found_handling": "single-page-application"
-  }
+  },
+  "routes": [
+    { "pattern": "goji.land/*", "zone_name": "goji.land" },
+    { "pattern": "www.goji.land/*", "zone_name": "goji.land" }
+  ]
 }
-

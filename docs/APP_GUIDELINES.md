@@ -10,13 +10,14 @@ An app is ready to publish when it:
 - has no runtime dependency on Taixu
 - has no frontend secrets
 - builds from a clean app-local install
+- has `apps/<id>/.npmrc` with `include=dev` so Workers Builds still installs Vite
 - has a parent-reviewed public description and screenshot
 
 ## Naming
 
 - Directory: `kebab-case`
 - Worker: `gojiland-<directory>`
-- Future domain: `<directory>.goji.land`
+- Public URL: `goji.land/<directory>/`
 - Cloudflare storage: `gojiland-<directory>-<purpose>`
 
 ## Publishing flow

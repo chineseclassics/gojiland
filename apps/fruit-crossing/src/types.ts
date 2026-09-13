@@ -3,7 +3,26 @@ export type ItemType = 'FRUIT' | 'RARE' | 'POOP'
 export type DayPeriod = 'dawn' | 'morning' | 'noon' | 'afternoon' | 'evening' | 'night'
 export type HairStyle = 'short' | 'long' | 'cap' | 'pony' | 'curl'
 export type ShopTab = 'seeds' | 'decor' | 'sell'
-export type PlaceKind = 'home' | 'hotel' | 'shed' | 'shop' | ''
+export type PlaceKind = 'home' | 'hotel' | 'shed' | 'shop' | 'house0' | 'house1' | 'hroom0' | 'hroom1' | ''
+
+export interface HotelStay {
+  id: string
+  room: 0 | 1
+  furniture: string[]
+  talkIdx: number
+}
+
+export interface TownStay {
+  id: string
+  slot: 0 | 1
+  buildStart: number
+  furniture: string[]
+  talkIdx: number
+  following: boolean
+  x: number
+  y: number
+  announcedReady: boolean
+}
 
 export interface FallItem {
   name: string
@@ -71,10 +90,11 @@ export interface GameState {
   interactLock: number
   nearPlace: PlaceKind
   hotelOpen: boolean
-  visitedGuests: string[]
-  todayGuestId: string
-  guestDate: string
-  guestTalkIdx: number
+  hotelFocusRoom: number
+  hotelStays: HotelStay[]
+  townStays: TownStay[]
+  villagerOpen: boolean
+  villagerSlot: number
   guestDialog: string
   width: number
   height: number

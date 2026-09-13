@@ -9,7 +9,7 @@
     "ageRange": "6–10",
     "status": "published",
     "featured": true,
-    "url": "https://gojiland-mystery-number-box.gnoluy.workers.dev",
+    "url": "https://goji.land/mystery-number-box/",
     "accent": "#f36b3f"
   },
   {
@@ -22,7 +22,7 @@
     "ageRange": "7–10",
     "status": "published",
     "featured": true,
-    "url": "https://gojiland-rollance.gnoluy.workers.dev",
+    "url": "https://goji.land/rollance/",
     "accent": "#75c56d"
   },
   {
@@ -35,7 +35,20 @@
     "ageRange": "5–10",
     "status": "published",
     "featured": true,
-    "url": "https://gojiland-fruit-crossing.gnoluy.workers.dev",
+    "url": "https://goji.land/fruit-crossing/",
     "accent": "#19c8b9"
+  },
+  {
+    "id": "typing-island",
+    "title": "打字島",
+    "titleEn": "Typing Island",
+    "description": "出門冒險、回家煮飯。中文拼音和英文打字一起練。",
+    "descriptionEn": "Adventure out, cook at home. Practice English and pinyin typing.",
+    "subject": "Language",
+    "ageRange": "8–10",
+    "status": "published",
+    "featured": true,
+    "url": "https://goji.land/typing-island/",
+    "accent": "#c44a32"
   }
 ]

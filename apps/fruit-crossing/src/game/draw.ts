@@ -1,5 +1,6 @@
 import { PLACES } from '../constants'
 import type { Basket, DayPeriod, GameState, Rect, TownPlayer } from '../types'
+import { HOUSE_BUILD_MS, guestById } from './hotelGuests'
 import { getSprite } from './sprites'
 
 function pxPlace(place: { x: number; y: number; w: number; h: number }, w: number, h: number): Rect {
@@ -417,10 +418,68 @@ function drawTownGround(ctx: CanvasRenderingContext2D, w: number, h: number, nig
     ctx.fill()
   }
 
-  drawBush(ctx, w * 0.1, h * 0.74, night, night ? '#f9a8d4' : '#fb7185')
-  drawBush(ctx, w * 0.42, h * 0.8, night, night ? '#fde68a' : '#facc15')
-  drawBush(ctx, w * 0.62, h * 0.76, night, night ? '#fda4af' : '#fb923c')
-  drawBush(ctx, w * 0.9, h * 0.72, night, night ? '#c4b5fd' : '#a78bfa')
+  drawBush(ctx, w * 0.4, h * 0.5, night, night ? '#f9a8d4' : '#fb7185')
+  drawBush(ctx, w * 0.55, h * 0.52, night, night ? '#fde68a' : '#facc15')
+}
+
+function drawBuildSite(ctx: CanvasRenderingContext2D, b: Rect, progress: number, animTime: number, night: boolean) {
+  ctx.fillStyle = night ? '#5b3a1a' : '#8b5a2b'
+  ctx.fillRect(b.x + b.w * 0.1, b.y + b.h * 0.55, 10, b.h * 0.45)
+  ctx.fillRect(b.x + b.w * 0.8, b.y + b.h * 0.55, 10, b.h * 0.45)
+  ctx.fillRect(b.x + b.w * 0.1, b.y + b.h * 0.52, b.w * 0.8, 8)
+  const roofH = 20 + progress * 28
+  ctx.fillStyle = night ? '#7f1d1d' : '#c2410c'
+  ctx.globalAlpha = 0.85
+  ctx.beginPath()
+  ctx.moveTo(b.x - 6, b.y + b.h * 0.55)
+  ctx.lineTo(b.x + b.w / 2, b.y + b.h * 0.55 - roofH)
+  ctx.lineTo(b.x + b.w + 6, b.y + b.h * 0.55)
+  ctx.closePath()
+  ctx.fill()
+  ctx.globalAlpha = 1
+  if (progress > 0.35) {
+    ctx.fillStyle = night ? '#fed7aa' : '#ffedd5'
+    ctx.globalAlpha = (progress - 0.35) / 0.65
+    ctx.fillRect(b.x + 8, b.y + b.h * 0.58, b.w - 16, b.h * 0.38)
+    ctx.globalAlpha = 1
+  }
+  ctx.fillStyle = '#f7f3df'
+  ctx.beginPath()
+  ctx.roundRect(b.x + 8, b.y + b.h + 6, b.w - 16, 8, 4)
+  ctx.fill()
+  ctx.fillStyle = '#65a30d'
+  ctx.beginPath()
+  ctx.roundRect(b.x + 8, b.y + b.h + 6, (b.w - 16) * progress, 8, 4)
+  ctx.fill()
+  if (progress < 1) {
+    const spark = (Math.sin(animTime * 10) + 1) / 2
+    ctx.fillStyle = `rgba(250, 204, 21, ${0.35 + spark * 0.55})`
+    ctx.beginPath()
+    ctx.arc(b.x + b.w * 0.7, b.y + b.h * 0.4, 5 + spark * 3, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+function drawCottage(ctx: CanvasRenderingContext2D, b: Rect, night: boolean, slot: number) {
+  ctx.save()
+  ctx.filter = slot === 0 ? 'hue-rotate(-18deg)' : 'hue-rotate(42deg)'
+  drawHomeHouse(ctx, b, night)
+  ctx.restore()
+}
+
+export function hotelGuestPos(room: 0 | 1, width: number, height: number) {
+  const hotel = pxPlace(PLACES.hotel, width, height)
+  return {
+    x: hotel.x + hotel.w * (0.22 + room * 0.56),
+    y: hotel.y + hotel.h + 20,
+  }
+}
+
+function drawVillager(ctx: CanvasRenderingContext2D, x: number, y: number, emoji: string) {
+  ctx.font = '28px serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(emoji, x, y - 8)
 }
 
 export function drawTownScene(ctx: CanvasRenderingContext2D, state: GameState, player: TownPlayer) {
@@ -435,6 +494,20 @@ export function drawTownScene(ctx: CanvasRenderingContext2D, state: GameState, p
   drawHotelInn(ctx, hotel, night)
   drawRainShed(ctx, shed)
   drawFruitShop(ctx, shop, night)
+  for (const stay of state.hotelStays) {
+    const pos = hotelGuestPos(stay.room, state.width, state.height)
+    drawVillager(ctx, pos.x, pos.y, guestById(stay.id)?.emoji ?? '🙂')
+  }
+  for (const stay of state.townStays) {
+    const key = stay.slot === 0 ? 'house0' : 'house1'
+    const plot = pxPlace(PLACES[key], state.width, state.height)
+    const progress = Math.min(1, Math.max(0, (Date.now() - stay.buildStart) / HOUSE_BUILD_MS))
+    if (progress >= 1) drawCottage(ctx, plot, night, stay.slot)
+    else drawBuildSite(ctx, plot, progress, state.animTime, night)
+  }
+  for (const stay of state.townStays) {
+    drawVillager(ctx, stay.x, stay.y, guestById(stay.id)?.emoji ?? '🙂')
+  }
   drawAvatar(ctx, player)
   ctx.textAlign = 'center'
   if (state.nearPlace) {
@@ -444,8 +517,22 @@ export function drawTownScene(ctx: CanvasRenderingContext2D, state: GameState, p
       hotel: '點一下進旅館',
       shed: '點一下進棚子',
       shop: '點一下進商店',
+      house0: '點一下找新住民',
+      house1: '點一下找新住民',
+      hroom0: '點一下找旅館客人',
+      hroom1: '點一下找旅館客人',
     }
-    const label = labels[state.nearPlace]
+    const hotelStay = state.nearPlace === 'hroom0' || state.nearPlace === 'hroom1'
+      ? state.hotelStays.find((it) => (it.room === 0 ? 'hroom0' : 'hroom1') === state.nearPlace)
+      : null
+    const stay = state.nearPlace === 'house0' || state.nearPlace === 'house1'
+      ? state.townStays.find((it) => (it.slot === 0 ? 'house0' : 'house1') === state.nearPlace)
+      : null
+    const label = hotelStay
+      ? `點一下找${guestById(hotelStay.id)?.name ?? '客人'}`
+      : stay
+      ? (Date.now() - stay.buildStart >= HOUSE_BUILD_MS ? '點一下找朋友' : '點一下看工地')
+      : labels[state.nearPlace]
     ctx.beginPath()
     const bw = 180
     const bh = 34
@@ -466,5 +553,7 @@ export function placeRects(width: number, height: number) {
     hotel: pxPlace(PLACES.hotel, width, height),
     shed: pxPlace(PLACES.shed, width, height),
     shop: pxPlace(PLACES.shop, width, height),
+    house0: pxPlace(PLACES.house0, width, height),
+    house1: pxPlace(PLACES.house1, width, height),
   }
 }

@@ -49,7 +49,9 @@ managed by her family.
 - Initially deploy to `workers.dev`.
 - After `goji.land` is purchased:
   - platform: `goji.land`
-  - apps: `<app>.goji.land`
-- Cloudflare Workers Builds should watch only the app's directory. The platform
-  also watches `catalog/**` because it owns the public catalogue.
+  - apps: `goji.land/<app>/`
+- Cloudflare Workers Builds should watch the app directory plus `scripts/**`
+  (shared `build-worker.mjs`). The platform also watches `catalog/**`.
+- App Workers Builds commands use `npm install && npm run build:worker`.
+  Each app keeps `.npmrc` with `include=dev` so CI still installs Vite.
 

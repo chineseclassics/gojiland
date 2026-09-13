@@ -1,11 +1,12 @@
 {
-  "name": "@gojiland/fruit-crossing",
+  "name": "fruit-crossing",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "vue-tsc --noEmit && vite build",
+    "build:worker": "node ../../scripts/build-worker.mjs",
     "preview": "vite preview --host",
     "deploy": "wrangler deploy"
   },

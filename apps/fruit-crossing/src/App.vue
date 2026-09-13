@@ -13,6 +13,8 @@ import ShelterModal from './components/modals/ShelterModal.vue'
 import ShopModal from './components/modals/ShopModal.vue'
 import SummaryModal from './components/modals/SummaryModal.vue'
 import SundayModal from './components/modals/SundayModal.vue'
+import VillagerModal from './components/modals/VillagerModal.vue'
+import { TOWN_RESIDENT_MAX } from './game/hotelGuests'
 import { fruitGameKey } from './game/key'
 import { useFruitGame } from './game/useFruitGame'
 
@@ -24,8 +26,12 @@ const sunday = game.sunday
 const fruitStacks = game.fruitStacks
 const cardAlbum = game.cardAlbum
 const inspectHint = game.inspectHint
-const hotelGuest = game.hotelGuest
+const hotelRooms = game.hotelRooms
 const hotelCandidates = game.hotelCandidates
+const townNames = game.townNames
+const villagerGuest = game.villagerGuest
+const villagerReady = game.villagerReady
+const villagerRemain = game.villagerRemain
 
 const shelterStatus = computed(() => {
   if (s.thunder) return '外面在打雷，出去可能被閃電打到。'
@@ -119,12 +125,37 @@ onUnmounted(() => {
     />
     <HotelModal
       :open="s.hotelOpen"
-      :guest="hotelGuest"
+      :rooms="hotelRooms"
       :candidates="hotelCandidates"
-      :dialog="s.guestDialog"
+      :focus-room="s.hotelFocusRoom"
+      :money="s.money"
+      :decors="game.shopDecor"
+      :town-count="s.townStays.length"
+      :town-max="TOWN_RESIDENT_MAX"
+      :town-names="townNames"
       @close="game.closeHotel"
+      @focus="game.focusHotelRoom"
       @invite="game.inviteGuest"
       @talk="game.talkHotelGuest"
+      @decorate="game.decorateHotelRoom"
+      @settle="game.settleGuestInTown"
+      @checkout="game.checkoutHotelGuest"
+    />
+    <VillagerModal
+      :open="s.villagerOpen"
+      :guest="villagerGuest"
+      :dialog="s.guestDialog"
+      :ready="villagerReady"
+      :remain="villagerRemain"
+      :furniture="s.townStays.find((it) => it.slot === s.villagerSlot)?.furniture ?? []"
+      :money="s.money"
+      :decors="game.shopDecor"
+      :following="!!s.townStays.find((it) => it.slot === s.villagerSlot)?.following"
+      @close="game.closeVillager"
+      @talk="game.talkVillager"
+      @play="game.playWithVillager"
+      @decorate="game.decorateVillagerHome"
+      @leave="game.askVillagerToLeave"
     />
     <HomeModal
       :open="s.homeOpen"

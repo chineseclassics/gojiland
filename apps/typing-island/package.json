@@ -1,0 +1,23 @@
+{
+  "name": "typing-island",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vue-tsc --noEmit && vite build",
+    "build:worker": "node ../../scripts/build-worker.mjs",
+    "preview": "vite preview --host",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "~5.7.3",
+    "vite": "^6.2.0",
+    "vue-tsc": "^2.2.8",
+    "wrangler": "^4.69.0"
+  }
+}

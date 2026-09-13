@@ -123,6 +123,26 @@ function renderPreview(app: CatalogApp): string {
     `;
   }
 
+  if (app.id === 'typing-island') {
+    return `
+      <div class="typing-preview">
+        <span class="typing-fox"></span>
+        <span class="typing-stone">跳</span>
+        <span class="typing-shark"></span>
+      </div>
+    `;
+  }
+
+  if (app.id === 'fruit-crossing') {
+    return `
+      <div class="fruit-preview">
+        <span class="fruit-drop drop-one">🍎</span>
+        <span class="fruit-drop drop-two">🍐</span>
+        <span class="fruit-basket">🧺</span>
+      </div>
+    `;
+  }
+
   return `
     <div class="preview-box">?</div>
     <div class="preview-lines">

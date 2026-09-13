@@ -315,6 +315,91 @@ a {
     linear-gradient(180deg, #9ad8ed 0 46%, #75c56d 47%);
 }
 
+.game-preview-typing-island {
+  background:
+    linear-gradient(180deg, #8ec8d4 0 42%, #2f6f86 42%);
+}
+
+.game-preview-fruit-crossing {
+  background:
+    linear-gradient(180deg, #9ad8ed 0 38%, #7dcf8a 38%);
+}
+
+.typing-preview,
+.fruit-preview {
+  position: relative;
+  width: 100%;
+  height: 180px;
+}
+
+.typing-fox,
+.typing-stone,
+.typing-shark {
+  position: absolute;
+  display: block;
+}
+
+.typing-fox {
+  left: 38%;
+  bottom: 54px;
+  width: 54px;
+  height: 48px;
+  border-radius: 46% 46% 40% 40%;
+  background: #d57a3a;
+  box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.12);
+}
+
+.typing-fox::before,
+.typing-fox::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  width: 16px;
+  height: 20px;
+  background: #d57a3a;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.typing-fox::before { left: 6px; }
+.typing-fox::after { right: 6px; }
+
+.typing-stone {
+  left: 54%;
+  bottom: 28px;
+  min-width: 58px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: #fff8ea;
+  color: #172842;
+  font-weight: 800;
+  text-align: center;
+}
+
+.typing-shark {
+  left: 12%;
+  bottom: 36px;
+  width: 72px;
+  height: 28px;
+  border-radius: 50% 40% 50% 50%;
+  background: #4d627a;
+}
+
+.fruit-drop {
+  position: absolute;
+  font-size: 2rem;
+}
+
+.drop-one { left: 28%; top: 18px; }
+.drop-two { right: 30%; top: 48px; }
+
+.fruit-basket {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  font-size: 2.6rem;
+}
+
 .preview-window {
   width: min(76%, 560px);
   overflow: hidden;

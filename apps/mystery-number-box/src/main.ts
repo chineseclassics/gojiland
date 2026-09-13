@@ -102,7 +102,7 @@ if (!root) throw new Error('Missing #app root');
 
 root.innerHTML = `
   <main class="game-page">
-    <a class="gojiland-link" href="https://gojiland-platform.gnoluy.workers.dev" aria-label="Back to GojiLand">
+    <a class="gojiland-link" href="https://goji.land" aria-label="Back to GojiLand">
       <span aria-hidden="true"></span>
       GojiLand
     </a>

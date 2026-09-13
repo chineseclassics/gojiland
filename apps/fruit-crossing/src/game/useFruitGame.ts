@@ -1,8 +1,8 @@
 import { computed, reactive, readonly, shallowRef } from 'vue'
 import { FRUITS_DATA, SAVE_KEY, SHOP_DECOR, SHOP_SEEDS, fruitSellPrice, isOrdinarySeed, isSunday, todayLabel } from '../constants'
-import type { Basket, GameState, HairStyle, Keys, PlaceKind, ShopTab, TownPlayer } from '../types'
+import type { Basket, GameState, HairStyle, HotelStay, Keys, PlaceKind, ShopTab, TownPlayer, TownStay } from '../types'
 import { isMuted, playSound, setRainAmbience, toggleMute, unlockAudio } from './audio'
-import { placeRects } from './draw'
+import { hotelGuestPos, placeRects } from './draw'
 import {
   FLASH_CARD_COST,
   albumSlots,
@@ -12,7 +12,14 @@ import {
   isFlashCard,
   makeFlashCard,
 } from './flashCards'
-import { guestById, remainingGuests } from './hotelGuests'
+import {
+  HOTEL_ROOM_COUNT,
+  TOWN_RESIDENT_MAX,
+  guestById,
+  houseReady,
+  houseRemainLabel,
+  inviteCandidates,
+} from './hotelGuests'
 import { clockLabel, dayPeriodFromHour, fetchWeatherCode, hourNow, isRainCode, isThunderCode, weatherLabel } from './weather'
 
 function defaultState(): GameState {
@@ -49,10 +56,11 @@ function defaultState(): GameState {
     interactLock: 0,
     nearPlace: '',
     hotelOpen: false,
-    visitedGuests: [],
-    todayGuestId: '',
-    guestDate: '',
-    guestTalkIdx: 0,
+    hotelFocusRoom: -1,
+    hotelStays: [],
+    townStays: [],
+    villagerOpen: false,
+    villagerSlot: 0,
     guestDialog: '',
     width: 800,
     height: 500,
@@ -102,7 +110,7 @@ export function useFruitGame() {
       : '按住拖曳，可翻到背面 · 輕點空白放下',
   )
   const anyModal = computed(() =>
-    state.sundayOpen || state.shelterOpen || state.shopOpen || state.homeOpen || state.hotelOpen || state.customOpen || state.pauseOpen || state.summaryOpen || state.inspectOpen,
+    state.sundayOpen || state.shelterOpen || state.shopOpen || state.homeOpen || state.hotelOpen || state.villagerOpen || state.customOpen || state.pauseOpen || state.summaryOpen || state.inspectOpen,
   )
   const blocked = computed(() => state.paused || state.finished || state.inShelter || anyModal.value)
   const storming = computed(() => state.raining || state.thunder)
@@ -126,9 +134,8 @@ export function useFruitGame() {
       shirtColor: townPlayer.shirtColor,
       mrGifted: state.mrGifted,
       giftDate: todayLabel(),
-      visitedGuests: state.visitedGuests,
-      todayGuestId: state.todayGuestId,
-      guestDate: state.guestDate,
+      hotelStays: state.hotelStays,
+      townStays: state.townStays.map(({ following, x, y, ...rest }) => rest),
     }))
   }
 
@@ -144,9 +151,8 @@ export function useFruitGame() {
         shirtColor: string
         mrGifted: boolean
         giftDate: string
-        visitedGuests: string[]
-        todayGuestId: string
-        guestDate: string
+        hotelStays: HotelStay[]
+        townStays: Omit<TownStay, 'following' | 'x' | 'y'>[]
       }> | null
       if (!data) return
       if (Number.isFinite(data.money)) state.money = data.money as number
@@ -157,14 +163,36 @@ export function useFruitGame() {
       if (data.hairStyle) townPlayer.hairStyle = data.hairStyle
       if (data.shirtColor) townPlayer.shirtColor = data.shirtColor
       if (data.giftDate === todayLabel()) state.mrGifted = !!data.mrGifted
-      if (Array.isArray(data.visitedGuests)) {
-        state.visitedGuests = data.visitedGuests.filter((id): id is string => typeof id === 'string')
+      if (Array.isArray(data.hotelStays)) {
+        state.hotelStays = data.hotelStays
+          .filter((it) => it && guestById(it.id))
+          .map((it) => ({
+            id: it.id,
+            room: (Number(it.room) === 1 ? 1 : 0) as 0 | 1,
+            furniture: Array.isArray(it.furniture) ? it.furniture : [],
+            talkIdx: Number(it.talkIdx) || 0,
+          }))
+          .slice(0, HOTEL_ROOM_COUNT)
       }
-      if (data.guestDate === todayLabel() && typeof data.todayGuestId === 'string' && data.todayGuestId) {
-        state.todayGuestId = data.todayGuestId
-        state.guestDate = data.guestDate
-        const guest = guestById(state.todayGuestId)
-        if (guest) state.guestDialog = guest.lines[0]
+      const legacyId = (data as { todayGuestId?: string }).todayGuestId
+      if (!state.hotelStays.length && typeof legacyId === 'string' && guestById(legacyId)) {
+        state.hotelStays = [{ id: legacyId, room: 0, furniture: [], talkIdx: 0 }]
+      }
+      if (Array.isArray(data.townStays)) {
+        state.townStays = data.townStays
+          .filter((it) => it && guestById(it.id) && (it.slot === 0 || it.slot === 1))
+          .slice(0, TOWN_RESIDENT_MAX)
+          .map((it) => ({
+            id: it.id,
+            slot: it.slot,
+            buildStart: Number(it.buildStart) || Date.now(),
+            furniture: Array.isArray(it.furniture) ? it.furniture : [],
+            talkIdx: Number(it.talkIdx) || 0,
+            following: false,
+            x: 0,
+            y: 0,
+            announcedReady: !!it.announcedReady || houseReady(Number(it.buildStart) || 0),
+          }))
       }
     } catch {
       /* ignore bad save */
@@ -260,12 +288,25 @@ export function useFruitGame() {
     persistHud()
   }
 
+  function inRect(x: number, y: number, r: { x: number; y: number; w: number; h: number }) {
+    return x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h
+  }
+
   function detectPlace(x: number, y: number): PlaceKind {
     const rects = placeRects(state.width, state.height)
-    if (x > rects.home.x && x < rects.home.x + rects.home.w && y > rects.home.y && y < rects.home.y + rects.home.h) return 'home'
-    if (x > rects.hotel.x && x < rects.hotel.x + rects.hotel.w && y > rects.hotel.y && y < rects.hotel.y + rects.hotel.h) return 'hotel'
-    if (x > rects.shed.x && x < rects.shed.x + rects.shed.w && y > rects.shed.y && y < rects.shed.y + rects.shed.h) return 'shed'
-    if (x > rects.shop.x && x < rects.shop.x + rects.shop.w && y > rects.shop.y && y < rects.shop.y + rects.shop.h) return 'shop'
+    for (const stay of state.hotelStays) {
+      const pos = hotelGuestPos(stay.room, state.width, state.height)
+      if (Math.hypot(x - pos.x, y - pos.y) < 36) return stay.room === 0 ? 'hroom0' : 'hroom1'
+    }
+    for (const stay of state.townStays) {
+      const kind = stay.slot === 0 ? 'house0' : 'house1'
+      if (Math.hypot(x - stay.x, y - stay.y) < 32) return kind
+      if (inRect(x, y, rects[kind])) return kind
+    }
+    if (inRect(x, y, rects.home)) return 'home'
+    if (inRect(x, y, rects.hotel)) return 'hotel'
+    if (inRect(x, y, rects.shed)) return 'shed'
+    if (inRect(x, y, rects.shop)) return 'shop'
     return ''
   }
 
@@ -275,6 +316,9 @@ export function useFruitGame() {
     if (kind === 'shop') openShop()
     else if (kind === 'home') openHome()
     else if (kind === 'hotel') openHotel()
+    else if (kind === 'hroom0') openHotel(0)
+    else if (kind === 'hroom1') openHotel(1)
+    else if (kind === 'house0' || kind === 'house1') openVillager(kind === 'house0' ? 0 : 1)
     else if (kind === 'shed') {
       if (storming.value) enterShelter()
       else {
@@ -287,6 +331,7 @@ export function useFruitGame() {
   function updateWeather(dt: number) {
     state.dayPeriod = dayPeriodFromHour(hourNow())
     state.flash = Math.max(0, state.flash - dt * 2.4)
+    refreshHouses()
     if (state.paused || state.finished) return
     if (storming.value && !state.inShelter) {
       state.playerWet = true
@@ -385,6 +430,7 @@ export function useFruitGame() {
     townPlayer.y += (vy / len) * townPlayer.speed * dt
     townPlayer.x = Math.min(Math.max(townPlayer.x, 24), state.width - 24)
     townPlayer.y = Math.min(Math.max(townPlayer.y, 24), state.height - 24)
+    updateVillagers(dt)
     state.nearPlace = detectPlace(townPlayer.x, townPlayer.y)
     if (state.nearPlace && state.nearPlace !== lastNear) playSound('near')
     lastNear = state.nearPlace
@@ -402,7 +448,7 @@ export function useFruitGame() {
   function stepAwayFromPlace(kind: PlaceKind) {
     if (!kind) return
     const rects = placeRects(state.width, state.height)
-    const b = rects[kind]
+    const b = kind === 'hroom0' || kind === 'hroom1' ? rects.hotel : rects[kind]
     const cx = b.x + b.w / 2
     const cy = b.y + b.h / 2
     const dx = townPlayer.x - cx
@@ -428,7 +474,7 @@ export function useFruitGame() {
   }
 
   function togglePause() {
-    if (state.sundayOpen || state.summaryOpen || state.inShelter || state.shopOpen || state.homeOpen || state.hotelOpen || state.customOpen || state.inspectOpen) return
+    if (state.sundayOpen || state.summaryOpen || state.inShelter || state.shopOpen || state.homeOpen || state.hotelOpen || state.villagerOpen || state.customOpen || state.inspectOpen) return
     state.paused = !state.paused
     state.pauseOpen = state.paused
     syncRain()
@@ -640,44 +686,235 @@ export function useFruitGame() {
     openInspect(name, true)
   }
 
-  function openHotel() {
+  function openHotel(room = -1) {
     state.hotelOpen = true
+    state.hotelFocusRoom = room
+    if (room >= 0) {
+      const stay = state.hotelStays.find((it) => it.room === room)
+      const guest = stay ? guestById(stay.id) : null
+      state.guestDialog = guest ? guest.lines[stay?.talkIdx ?? 0] : ''
+    }
     playSound('door')
   }
   function closeHotel() {
     state.hotelOpen = false
+    state.hotelFocusRoom = -1
     state.interactLock = 1.2
     playSound('close')
     stepAwayFromPlace('hotel')
   }
+  function focusHotelRoom(room: number) {
+    state.hotelFocusRoom = room
+    const stay = state.hotelStays.find((it) => it.room === room)
+    const guest = stay ? guestById(stay.id) : null
+    state.guestDialog = guest ? guest.lines[stay?.talkIdx ?? 0] : ''
+    playSound('tab')
+  }
   function inviteGuest(id: string) {
-    if (state.guestDate === todayLabel() && state.todayGuestId) {
+    if (state.hotelStays.some((it) => it.id === id) || state.townStays.some((it) => it.id === id)) {
       playSound('deny')
-      showNotice('今晚已經有旅客了。')
-      return
-    }
-    if (state.visitedGuests.includes(id)) {
-      playSound('deny')
-      showNotice('這個人已經來過，不會再來了。')
+      showNotice('這個人已經在鎮上了。')
       return
     }
     const guest = guestById(id)
     if (!guest) return
-    state.todayGuestId = id
-    state.guestDate = todayLabel()
-    state.visitedGuests.push(id)
-    state.guestTalkIdx = 0
+    const used = new Set(state.hotelStays.map((it) => it.room))
+    let room = ([0, 1] as const).find((n) => !used.has(n))
+    let replaced = ''
+    if (room == null) {
+      const focus = state.hotelFocusRoom === 0 || state.hotelFocusRoom === 1 ? state.hotelFocusRoom : 0
+      const old = state.hotelStays.find((it) => it.room === focus)
+      replaced = old ? guestById(old.id)?.name ?? '' : ''
+      state.hotelStays = state.hotelStays.filter((it) => it.room !== focus)
+      room = focus as 0 | 1
+    }
+    state.hotelStays.push({ id, room, furniture: [], talkIdx: 0 })
+    state.hotelFocusRoom = room
     state.guestDialog = guest.lines[0]
     playSound('talk')
-    showNotice(`${guest.name} 今晚住進來了。`)
+    showNotice(replaced ? `${replaced} 退房了，${guest.name} 住進 ${room + 1} 號房。` : `${guest.name} 住進 ${room + 1} 號房了。到門口就能看見他。`)
+    persistHud()
+  }
+  function checkoutHotelGuest() {
+    const stay = state.hotelStays.find((it) => it.room === state.hotelFocusRoom)
+    const guest = stay ? guestById(stay.id) : null
+    if (!stay || !guest) return
+    state.hotelStays = state.hotelStays.filter((it) => it.room !== stay.room)
+    state.hotelFocusRoom = -1
+    playSound('close')
+    showNotice(`${guest.name} 離開客房了。之後還可以再邀請。`)
     persistHud()
   }
   function talkHotelGuest() {
-    const guest = hotelGuest.value
-    if (!guest) return
-    state.guestTalkIdx = (state.guestTalkIdx + 1) % guest.lines.length
-    state.guestDialog = guest.lines[state.guestTalkIdx]
+    const stay = state.hotelStays.find((it) => it.room === state.hotelFocusRoom)
+    const guest = stay ? guestById(stay.id) : null
+    if (!stay || !guest) return
+    stay.talkIdx = (stay.talkIdx + 1) % guest.lines.length
+    state.guestDialog = guest.lines[stay.talkIdx]
     playSound('talk')
+  }
+  function decorateHotelRoom(name: string, price: number) {
+    const stay = state.hotelStays.find((it) => it.room === state.hotelFocusRoom)
+    if (!stay) return
+    if (stay.furniture.includes(name)) {
+      playSound('deny')
+      return
+    }
+    if (state.money < price) {
+      playSound('deny')
+      showNotice('這件家具還買不起。')
+      return
+    }
+    state.money -= price
+    stay.furniture.push(name)
+    playSound('buy')
+    showNotice(`擺進 ${stay.room + 1} 號房了。`)
+    persistHud()
+  }
+  function settleGuestInTown() {
+    const stay = state.hotelStays.find((it) => it.room === state.hotelFocusRoom)
+    const guest = stay ? guestById(stay.id) : null
+    if (!stay || !guest) return
+    if (state.townStays.length >= TOWN_RESIDENT_MAX) {
+      playSound('deny')
+      const names = state.townStays.map((it) => guestById(it.id)?.name).filter(Boolean).join('、')
+      showNotice(`小鎮已有 ${names}。請其中一位離開後，才能再請人來。`)
+      return
+    }
+    const used = new Set(state.townStays.map((it) => it.slot))
+    const slot = ([0, 1] as const).find((n) => !used.has(n))
+    if (slot == null) return
+    const plot = placeRects(state.width, state.height)[slot === 0 ? 'house0' : 'house1']
+    state.townStays.push({
+      id: stay.id,
+      slot,
+      buildStart: Date.now(),
+      furniture: [...stay.furniture],
+      talkIdx: 0,
+      following: false,
+      x: plot.x + plot.w / 2,
+      y: plot.y + plot.h + 12,
+      announcedReady: false,
+    })
+    state.hotelStays = state.hotelStays.filter((it) => it.room !== stay.room)
+    state.hotelFocusRoom = -1
+    state.hotelOpen = false
+    state.interactLock = 1.2
+    playSound('door')
+    showNotice(`${guest.name} 來到小鎮了。他會出現在路上，房子大約五分鐘後蓋好。`)
+    persistHud()
+    stepAwayFromPlace('hotel')
+  }
+
+  function refreshHouses() {
+    let changed = false
+    for (const stay of state.townStays) {
+      if (!stay.announcedReady && houseReady(stay.buildStart)) {
+        stay.announcedReady = true
+        changed = true
+        const name = guestById(stay.id)?.name ?? '朋友'
+        playSound('fanfare')
+        showNotice(`${name} 的房子蓋好了！可以去找他聊天、玩耍。`)
+      }
+    }
+    if (changed) persistHud()
+  }
+
+  function updateVillagers(dt: number) {
+    const rects = placeRects(state.width, state.height)
+    for (const stay of state.townStays) {
+      const plot = rects[stay.slot === 0 ? 'house0' : 'house1']
+      const homeX = plot.x + plot.w / 2
+      const homeY = plot.y + plot.h + 14
+      let tx = homeX
+      let ty = homeY
+      if (stay.following) {
+        tx = townPlayer.x - 28
+        ty = townPlayer.y + 8
+      } else if (houseReady(stay.buildStart)) {
+        tx = homeX + Math.sin(state.animTime * 0.6 + stay.slot) * 36
+        ty = homeY + Math.cos(state.animTime * 0.45 + stay.slot) * 10
+      }
+      stay.x += (tx - stay.x) * Math.min(1, dt * 4)
+      stay.y += (ty - stay.y) * Math.min(1, dt * 4)
+    }
+  }
+
+  function openVillager(slot: 0 | 1) {
+    const stay = state.townStays.find((it) => it.slot === slot)
+    const guest = stay ? guestById(stay.id) : null
+    if (!stay || !guest) return
+    state.villagerSlot = slot
+    state.villagerOpen = true
+    const lines = houseReady(stay.buildStart) ? guest.townLines : guest.buildLines
+    state.guestDialog = lines[stay.talkIdx % lines.length]
+    playSound('talk')
+  }
+  function closeVillager() {
+    state.villagerOpen = false
+    state.interactLock = 1.2
+    playSound('close')
+    const kind = state.villagerSlot === 0 ? 'house0' : 'house1'
+    stepAwayFromPlace(kind)
+  }
+  function talkVillager() {
+    const stay = state.townStays.find((it) => it.slot === state.villagerSlot)
+    const guest = stay ? guestById(stay.id) : null
+    if (!stay || !guest) return
+    const lines = houseReady(stay.buildStart) ? guest.townLines : guest.buildLines
+    stay.talkIdx = (stay.talkIdx + 1) % lines.length
+    state.guestDialog = lines[stay.talkIdx]
+    playSound('talk')
+  }
+  function playWithVillager() {
+    const stay = state.townStays.find((it) => it.slot === state.villagerSlot)
+    const guest = stay ? guestById(stay.id) : null
+    if (!stay || !guest || !houseReady(stay.buildStart)) {
+      playSound('deny')
+      showNotice('房子蓋好才能一起玩。')
+      return
+    }
+    stay.following = !stay.following
+    for (const other of state.townStays) {
+      if (other !== stay) other.following = false
+    }
+    state.guestDialog = guest.playLines[stay.following ? 0 : 1]
+    playSound(stay.following ? 'gift' : 'close')
+    showNotice(stay.following ? `${guest.name} 跟著你散步了。再點一次就會停。` : `${guest.name} 先回家門口了。`)
+    if (stay.following) {
+      state.villagerOpen = false
+      state.interactLock = 0.6
+    }
+    persistHud()
+  }
+  function decorateVillagerHome(name: string, price: number) {
+    const stay = state.townStays.find((it) => it.slot === state.villagerSlot)
+    if (!stay || !houseReady(stay.buildStart)) return
+    if (stay.furniture.includes(name)) {
+      playSound('deny')
+      return
+    }
+    if (state.money < price) {
+      playSound('deny')
+      showNotice('這件家具還買不起。')
+      return
+    }
+    state.money -= price
+    stay.furniture.push(name)
+    playSound('buy')
+    showNotice('擺進新家了。')
+    persistHud()
+  }
+  function askVillagerToLeave() {
+    const stay = state.townStays.find((it) => it.slot === state.villagerSlot)
+    const guest = stay ? guestById(stay.id) : null
+    if (!stay || !guest) return
+    state.townStays = state.townStays.filter((it) => it.slot !== stay.slot)
+    state.villagerOpen = false
+    state.interactLock = 1.2
+    playSound('close')
+    showNotice(`${guest.name} 離開小鎮了。以後還可以再邀請回來。`)
+    persistHud()
   }
 
   function openHome() {
@@ -797,12 +1034,21 @@ export function useFruitGame() {
     basket.y = state.height - 72
     basket.x = Math.min(Math.max(basket.x, 8), state.width - basket.w - 8)
     basket.targetX = basket.x
+    const rects = placeRects(state.width, state.height)
+    for (const stay of state.townStays) {
+      if (stay.following) continue
+      if (stay.x === 0 && stay.y === 0) {
+        const plot = rects[stay.slot === 0 ? 'house0' : 'house1']
+        stay.x = plot.x + plot.w / 2
+        stay.y = plot.y + plot.h + 12
+      }
+    }
   }
 
   function goLandHome() {
     const host = window.location.hostname
     if (host.endsWith('workers.dev') || host.endsWith('goji.land')) {
-      window.location.href = 'https://gojiland-platform.gnoluy.workers.dev/'
+      window.location.href = 'https://goji.land/'
       return
     }
     const path = window.location.pathname
@@ -813,11 +1059,36 @@ export function useFruitGame() {
     window.location.href = '../../index.html'
   }
 
-  const hotelGuest = computed(() => {
-    if (state.guestDate !== todayLabel() || !state.todayGuestId) return null
-    return guestById(state.todayGuestId)
+  const hotelRooms = computed(() =>
+    state.hotelStays
+      .slice()
+      .sort((a, b) => a.room - b.room)
+      .map((stay) => {
+        const guest = guestById(stay.id)!
+        return {
+          room: stay.room,
+          guest,
+          furniture: stay.furniture,
+          dialog: state.hotelFocusRoom === stay.room ? state.guestDialog : guest.lines[stay.talkIdx % guest.lines.length],
+        }
+      }),
+  )
+  const hotelCandidates = computed(() =>
+    inviteCandidates(
+      state.hotelStays.map((it) => it.id),
+      state.townStays.map((it) => it.id),
+    ),
+  )
+  const townNames = computed(() =>
+    state.townStays.map((it) => guestById(it.id)?.name).filter((n): n is string => !!n),
+  )
+  const villagerStay = computed(() => state.townStays.find((it) => it.slot === state.villagerSlot) ?? null)
+  const villagerGuest = computed(() => (villagerStay.value ? guestById(villagerStay.value.id) : null))
+  const villagerReady = computed(() => (villagerStay.value ? houseReady(villagerStay.value.buildStart) : false))
+  const villagerRemain = computed(() => {
+    void state.animTime
+    return villagerStay.value ? houseRemainLabel(villagerStay.value.buildStart) : ''
   })
-  const hotelCandidates = computed(() => remainingGuests(state.visitedGuests))
 
   loadSave()
 
@@ -833,8 +1104,12 @@ export function useFruitGame() {
     fruitStacks,
     cardAlbum,
     inspectHint,
-    hotelGuest,
+    hotelRooms,
     hotelCandidates,
+    townNames,
+    villagerGuest,
+    villagerReady,
+    villagerRemain,
     muted,
     sunday: computed(() => isSunday()),
     unlockAudio,
@@ -867,8 +1142,17 @@ export function useFruitGame() {
     closeHome,
     openHotel,
     closeHotel,
+    focusHotelRoom,
     inviteGuest,
     talkHotelGuest,
+    checkoutHotelGuest,
+    decorateHotelRoom,
+    settleGuestInTown,
+    closeVillager,
+    talkVillager,
+    playWithVillager,
+    decorateVillagerHome,
+    askVillagerToLeave,
     openCustom,
     closeCustom,
     changeHair,

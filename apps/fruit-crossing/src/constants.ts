@@ -46,10 +46,12 @@ export function fruitSellPrice(item: string): number | null {
 }
 
 export const PLACES = {
-  home: { kind: 'home' as const, x: 0.04, y: 0.22, w: 0.17, h: 0.24 },
-  hotel: { kind: 'hotel' as const, x: 0.23, y: 0.16, w: 0.2, h: 0.3 },
-  shed: { kind: 'shed' as const, x: 0.46, y: 0.28, w: 0.16, h: 0.2 },
-  shop: { kind: 'shop' as const, x: 0.66, y: 0.2, w: 0.24, h: 0.28 },
+  home: { kind: 'home' as const, x: 0.03, y: 0.12, w: 0.16, h: 0.22 },
+  hotel: { kind: 'hotel' as const, x: 0.21, y: 0.08, w: 0.18, h: 0.26 },
+  shed: { kind: 'shed' as const, x: 0.42, y: 0.16, w: 0.14, h: 0.18 },
+  shop: { kind: 'shop' as const, x: 0.6, y: 0.1, w: 0.22, h: 0.24 },
+  house0: { kind: 'house0' as const, x: 0.18, y: 0.48, w: 0.18, h: 0.24 },
+  house1: { kind: 'house1' as const, x: 0.58, y: 0.48, w: 0.18, h: 0.24 },
 }
 
 export function todayLabel(): string {
