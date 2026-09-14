@@ -12,6 +12,11 @@ const { state } = island
       {{ state.lang === 'zh' ? '走過的地方隨時能再玩。沒開的路，先去主線探險。' : 'Replay unlocked places. Finish the trail to open more.' }}
     </p>
     <div class="spots">
+      <button class="spot blast" type="button" @click="island.openFall()">
+        <span class="emoji">🎈</span>
+        <strong>{{ state.lang === 'zh' ? '打掉字母氣球' : 'Pop letters' }}</strong>
+        <em>{{ state.lang === 'zh' ? '看天空，啪啪打字' : 'Type to pop balloons' }}</em>
+      </button>
       <button class="spot keys" type="button" @click="island.openKeys()">
         <span class="emoji">⌨️</span>
         <strong>{{ state.lang === 'zh' ? '字母回家' : 'Letter home' }}</strong>
@@ -42,11 +47,6 @@ const { state } = island
         <strong>{{ state.lang === 'zh' ? '水果雨' : 'Fruit rain' }}</strong>
         <em>{{ state.unlocked.orchard || state.campaignStep >= 3 ? (state.lang === 'zh' ? '已開路' : 'Open') : (state.lang === 'zh' ? '還沒開路' : 'Locked') }}</em>
       </button>
-      <div class="spot locked">
-        <span class="emoji">🌵</span>
-        <strong>{{ state.lang === 'zh' ? '沙漠' : 'Desert' }}</strong>
-        <em>{{ state.lang === 'zh' ? '即將開張' : 'Soon' }}</em>
-      </div>
       <div class="spot locked">
         <span class="emoji">🌳</span>
         <strong>{{ state.lang === 'zh' ? '爬樹' : 'Tree climb' }}</strong>
@@ -97,6 +97,7 @@ h1 {
 .spot em { font-style: normal; font-weight: 700; opacity: 0.65; }
 
 .spot.keys { background: oklch(0.93 0.05 80); }
+.spot.blast { background: oklch(0.92 0.12 55); }
 .spot.beach { background: oklch(0.92 0.05 85); }
 .spot.ocean { background: oklch(0.86 0.06 210); }
 .spot.orchard { background: oklch(0.88 0.08 145); }

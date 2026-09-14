@@ -106,6 +106,11 @@ export function useIsland() {
     scene.value = 'orchard'
   }
 
+  function openFall() {
+    result.value = null
+    scene.value = 'fall'
+  }
+
   function openKitchen() {
     if (!canCook.value) return
     result.value = null
@@ -116,7 +121,7 @@ export function useIsland() {
     state.inventory.fish += loot.fish ?? 0
     state.inventory.fruit += loot.fruit ?? 0
     state.stars += loot.stars ?? 1
-    if (kind !== 'kitchen') {
+    if (kind !== 'kitchen' && kind !== 'fall') {
       state.pet.hunger = Math.min(100, state.pet.hunger + 12)
     }
 
@@ -183,6 +188,7 @@ export function useIsland() {
     openKeys,
     openOcean,
     openOrchard,
+    openFall,
     openKitchen,
     completeLevel,
     cook,

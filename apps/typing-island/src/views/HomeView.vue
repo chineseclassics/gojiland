@@ -37,6 +37,9 @@ const speech = computed(() => {
       <button class="big-btn" type="button" @click="island.startAdventure()">
         {{ adventureLabel }}
       </button>
+      <button class="big-btn candy" type="button" @click="island.openFall()">
+        {{ state.lang === 'zh' ? '打掉字母氣球' : 'Pop letters' }}
+      </button>
       <button class="big-btn leaf" type="button" :disabled="!canCook" @click="island.openKitchen()">
         {{ state.lang === 'zh' ? '回家煮飯' : 'Cook' }}
       </button>
@@ -153,6 +156,9 @@ const speech = computed(() => {
   display: flex;
   gap: 12px;
   z-index: 2;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: min(520px, 94vw);
 }
 
 .home-tip {

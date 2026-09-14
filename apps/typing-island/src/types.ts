@@ -1,7 +1,7 @@
 export type Lang = 'zh' | 'en'
-export type Scene = 'home' | 'minigames' | 'keys' | 'ocean' | 'orchard' | 'kitchen'
+export type Scene = 'home' | 'minigames' | 'keys' | 'ocean' | 'orchard' | 'kitchen' | 'fall'
 export type OceanMode = 'beach' | 'shark'
-export type LevelKind = 'keys' | 'beach' | 'ocean' | 'orchard' | 'kitchen'
+export type LevelKind = 'keys' | 'beach' | 'ocean' | 'orchard' | 'kitchen' | 'fall'
 
 export interface Prompt {
   display: string

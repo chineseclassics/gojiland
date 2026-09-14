@@ -5,6 +5,7 @@ import ResultBanner from './components/ResultBanner.vue'
 import FruitRainGame from './games/FruitRainGame.vue'
 import KeyHomeGame from './games/KeyHomeGame.vue'
 import KitchenGame from './games/KitchenGame.vue'
+import LetterFallGame from './games/LetterFallGame.vue'
 import OceanGame from './games/OceanGame.vue'
 import { islandKey, useIsland } from './island/useIsland'
 import HomeView from './views/HomeView.vue'
@@ -25,6 +26,7 @@ const sceneClass = computed(() => `scene-${island.scene.value}`)
       <KeyHomeGame v-else-if="island.scene.value === 'keys'" />
       <OceanGame v-else-if="island.scene.value === 'ocean'" />
       <FruitRainGame v-else-if="island.scene.value === 'orchard'" />
+      <LetterFallGame v-else-if="island.scene.value === 'fall'" />
       <KitchenGame v-else-if="island.scene.value === 'kitchen'" />
       <ResultBanner />
     </main>

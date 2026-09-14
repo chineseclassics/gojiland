@@ -63,6 +63,11 @@ button {
     linear-gradient(180deg, oklch(0.9 0.05 80), oklch(0.86 0.06 70));
 }
 
+.world.scene-fall {
+  background:
+    linear-gradient(180deg, oklch(0.78 0.07 220), oklch(0.9 0.06 90) 58%, oklch(0.72 0.12 145));
+}
+
 .scene-stage {
   flex: 1;
   min-height: 0;
@@ -338,6 +343,13 @@ button {
   font-weight: 700;
 }
 
+.banner .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
 .big-btn {
   border: 0;
   background: var(--berry);
@@ -357,6 +369,12 @@ button {
 .big-btn.leaf {
   background: var(--leaf);
   box-shadow: 0 6px 0 oklch(0.42 0.12 145);
+}
+
+.big-btn.candy {
+  background: oklch(0.82 0.16 55);
+  color: oklch(0.28 0.06 50);
+  box-shadow: 0 6px 0 oklch(0.62 0.14 50);
 }
 
 .big-btn:active {
