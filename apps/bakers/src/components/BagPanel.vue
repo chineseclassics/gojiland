@@ -9,6 +9,8 @@ const {
   closeBag,
   eatSaved,
   sellSaved,
+  deliverSaved,
+  order,
   askReset,
   cancelReset,
   resetGame,
@@ -51,6 +53,7 @@ const filters = [
             <span v-if="item.kind === 'stock' && item.exclusive" class="tag">船長才有</span>
             <span class="count">× {{ item.count }}</span>
             <div v-if="item.kind === 'baked'" class="row">
+              <button v-if="item.id === order.recipeId" type="button" class="deliver" @click="deliverSaved(item.id)">送給客人</button>
               <button type="button" @click="eatSaved(item.id)">吃掉</button>
               <button type="button" @click="sellSaved(item.id)">賣 {{ item.price }}</button>
             </div>
@@ -151,8 +154,9 @@ h2 {
 .tag { background: oklch(0.9 0.04 200); color: var(--sea); }
 .count { background: var(--paper-2); }
 
-.row { display: flex; gap: 6px; margin-top: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .row button { flex: 1; font-size: 0.85rem; }
+.deliver { background: var(--sea); color: var(--paper); }
 
 @media (max-width: 700px) {
   .panel { width: 100%; }

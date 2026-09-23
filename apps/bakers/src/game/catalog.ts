@@ -1,4 +1,4 @@
-import type { Captain, Ingredient, Recipe, Tool } from './types'
+import type { Captain, Ingredient, Tool } from './types'
 
 export const ingredients: Record<string, Ingredient> = {
   flour: { id: 'flour', name: '麵粉', enName: 'Flour', price: 12, image: 'flour', tip: '麵粉把點心的形狀撐起來。', exclusive: false },
@@ -13,6 +13,16 @@ export const ingredients: Record<string, Ingredient> = {
   chocolate: { id: 'chocolate', name: '巧克力豆', enName: 'Chocolate Chips', price: 22, image: 'chocolate', tip: '巧克力豆會在餅乾裡融化。', exclusive: false },
   cream_cheese: { id: 'cream_cheese', name: '奶油乳酪', enName: 'Cream Cheese', price: 22, image: 'cream_cheese', tip: '奶油乳酪做塔的內餡很合適。', exclusive: false },
   strawberry: { id: 'strawberry', name: '草莓', enName: 'Strawberry', price: 16, image: 'strawberry', tip: '草莓適合鋪在塔上面。', exclusive: false },
+  apple: { id: 'apple', name: '蘋果', enName: 'Apple', price: 14, image: 'apple', tip: '蘋果可以做派，也可以做蛋糕。', exclusive: false },
+  oats: { id: 'oats', name: '燕麥', enName: 'Oats', price: 10, image: 'oats', tip: '燕麥讓餅乾更有嚼勁。', exclusive: false },
+  lemon: { id: 'lemon', name: '檸檬', enName: 'Lemon', price: 14, image: 'lemon', tip: '檸檬帶來清爽的酸味。', exclusive: false },
+  blueberry: { id: 'blueberry', name: '藍莓', enName: 'Blueberry', price: 18, image: 'blueberry', tip: '藍莓放進瑪芬裡會微微爆開。', exclusive: false },
+  banana: { id: 'banana', name: '香蕉', enName: 'Banana', price: 12, image: 'banana', tip: '熟香蕉會讓麵包又濕又香。', exclusive: false },
+  almond: { id: 'almond', name: '杏仁', enName: 'Almond', price: 16, image: 'almond', tip: '杏仁烤過以後更香。', exclusive: false },
+  coconut: { id: 'coconut', name: '椰子', enName: 'Coconut', price: 14, image: 'coconut', tip: '椰子絲帶來海邊的甜香。', exclusive: false },
+  raisin: { id: 'raisin', name: '葡萄乾', enName: 'Raisin', price: 12, image: 'raisin', tip: '葡萄乾藏在餅乾裡，咬到會甜一下。', exclusive: false },
+  pumpkin: { id: 'pumpkin', name: '南瓜', enName: 'Pumpkin', price: 14, image: 'pumpkin', tip: '南瓜泥讓瑪芬顏色變暖。', exclusive: false },
+  cream: { id: 'cream', name: '鮮奶油', enName: 'Cream', price: 18, image: 'cream', tip: '鮮奶油做蛋塔和泡芙的內餡。', exclusive: false },
   cinnamon: { id: 'cinnamon', name: '肉桂粉', enName: 'Cinnamon', price: 0, image: 'cinnamon', tip: '肉桂是蘋果派的香氣。商店不賣，要找傑克船長。', exclusive: true },
   cocoa: { id: 'cocoa', name: '可可粉', enName: 'Cocoa', price: 0, image: 'cocoa', tip: '可可粉是布朗尼的深色來源。商店不賣，要找摩根船長。', exclusive: true },
   honey: { id: 'honey', name: '百花蜜', enName: 'Honey', price: 0, image: 'honey', tip: '百花蜜比糖更有花香。商店不賣，要找蔻拉船長。', exclusive: true },
@@ -71,23 +81,6 @@ export const captains: Captain[] = [
     rewardGold: 45,
     rewardItem: 'vanilla',
     rewardCount: 2,
-  },
-]
-
-export const presets: Recipe[] = [
-  {
-    id: 'cookies',
-    name: '香酥餅乾',
-    enName: 'Cookies',
-    image: 'cookies',
-    required: ['flour', 'sugar', 'butter', 'baking_soda'],
-  },
-  {
-    id: 'cake',
-    name: '綿密蛋糕',
-    enName: 'Cake',
-    image: 'cake',
-    required: ['flour', 'sugar', 'eggs', 'baking_powder', 'milk'],
   },
 ]
 

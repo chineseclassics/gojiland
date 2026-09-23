@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { images } from '../game/images'
-import { ingredients, presets } from '../game/catalog'
+import { ingredients } from '../game/catalog'
+import { dishes } from '../game/recipes'
+import RecipeBook from './RecipeBook.vue'
 import { useBakers } from '../composables/useGame'
 
 const {
@@ -9,10 +11,13 @@ const {
   prep,
   tray,
   recipePrice,
+  order,
+  menuProgress,
   selectPreset,
   toggleCustom,
   submitCustom,
   place,
+  placeFromBag,
   unplace,
   startBake,
   seekShop,
@@ -40,32 +45,28 @@ const whereText = {
         <h2>先選點心，再把食材放到空位上。</h2>
         <p class="helper">
           <img :src="images.brother" alt="弟弟" />
-          <span>你八歲，這是家裡的店。弟弟在旁邊幫忙，點食材時會跟著唸英文。</span>
+          <span>你八歲，這是家裡的店。弟弟在旁邊幫忙。菜單烤過 {{ menuProgress.done }} / {{ menuProgress.total }}。</span>
         </p>
 
-        <div class="choices">
-          <button
-            v-for="preset in presets"
-            :key="preset.id"
-            type="button"
-            class="choice"
-            :class="{ on: state.recipe?.id === preset.id }"
-            @click="selectPreset(preset.id)"
-          >
-            <img :src="images[preset.image]" :alt="preset.name" />
-            <span>
-              <strong>{{ preset.name }}</strong>
-              <em>{{ preset.enName }}</em>
-            </span>
-          </button>
-          <button type="button" class="choice own" :class="{ on: state.customOpen || state.recipe?.custom }" @click="toggleCustom">
-            <img :src="images.pastry" alt="" />
-            <span>
-              <strong>自己取名</strong>
-              <em>Your own bake</em>
-            </span>
-          </button>
-        </div>
+        <article class="request">
+          <img class="food" :src="images[order.dishImage]" alt="" />
+          <div>
+            <p>{{ order.line }}送出去可以拿到 {{ order.payout }} 金幣。</p>
+            <button v-if="state.recipe?.id !== order.recipeId" type="button" class="make" :disabled="state.baking" @click="selectPreset(order.recipeId)">就做這道</button>
+          </div>
+        </article>
+
+        <RecipeBook
+          :dishes="dishes"
+          :active-id="state.recipe?.id ?? null"
+          :order-id="order.recipeId"
+          :discovered="state.discovered"
+          @select="selectPreset"
+        />
+
+        <button type="button" class="own" :class="{ on: state.customOpen || state.recipe?.custom }" @click="toggleCustom">
+          自己取名
+        </button>
 
         <form v-if="state.customOpen" class="custom" @submit.prevent="submitCustom">
           <input v-model="customDraft" maxlength="16" placeholder="例如蘋果派、蜂蜜鬆餅" />
@@ -80,6 +81,7 @@ const whereText = {
             <div>
               <h2>{{ state.recipe.name }}</h2>
               <p>{{ state.recipe.enName }} · 賣出可得 {{ recipePrice }} 金幣</p>
+              <p v-if="state.recipe.note" class="note">{{ state.recipe.note }}</p>
             </div>
           </header>
 
@@ -106,6 +108,7 @@ const whereText = {
           </ul>
 
           <div class="actions">
+            <button v-if="!state.baking && !prep.ready && tray.some((item) => item.needed && !item.done)" type="button" class="quiet" @click="placeFromBag">把包包裡有的放上來</button>
             <button v-if="!state.baking && prep.missing.some((item) => item.where === 'shop')" type="button" class="quiet" @click="seekShop">去商店</button>
             <button v-if="!state.baking && prep.missing.some((item) => item.where === 'beach')" type="button" class="quiet" @click="switchScene('beach')">去海邊</button>
             <button type="button" class="bake" :disabled="state.baking" @click="startBake">
@@ -217,6 +220,66 @@ const whereText = {
   border-radius: 50%;
   object-fit: cover;
   flex: 0 0 auto;
+}
+
+.request {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 14px;
+  background: oklch(0.95 0.03 200);
+}
+
+.request .food {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  background: oklch(0.97 0.02 90);
+}
+
+.make {
+  margin-top: 6px;
+  border: 0;
+  background: var(--sea);
+  color: var(--paper);
+  border-radius: 12px;
+  min-height: 40px;
+  padding: 6px 12px;
+  font-weight: 700;
+}
+
+.make:disabled { opacity: 0.6; }
+
+.request p {
+  color: var(--ink);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.own {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  background: oklch(0.98 0.01 90);
+  border-radius: 14px;
+  min-height: 44px;
+  font-weight: 700;
+}
+
+.own.on {
+  border-color: var(--cocoa);
+  background: oklch(0.95 0.03 80);
+}
+
+.note {
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .order h2, .waiting p {

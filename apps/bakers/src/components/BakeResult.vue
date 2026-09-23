@@ -2,7 +2,7 @@
 import { images } from '../game/images'
 import { useBakers } from '../composables/useGame'
 
-const { state, finishBake } = useBakers()
+const { state, finishBake, order } = useBakers()
 </script>
 
 <template>
@@ -11,7 +11,11 @@ const { state, finishBake } = useBakers()
         <img :src="images[state.result.image]" :alt="state.result.name" />
         <p class="kicker">烤好了</p>
         <h2>{{ state.result.name }}</h2>
+        <p v-if="state.debut" class="debut">弟弟說：這是我們第一次烤出{{ state.debut }}，撲滿裡多了 8 金幣。</p>
         <div class="actions">
+          <button v-if="state.result.id === order.recipeId" type="button" class="deliver" @click="finishBake('deliver')">
+            送給{{ order.guestName }}，得到 {{ order.payout }} 金幣
+          </button>
           <button type="button" @click="finishBake('eat')">吃掉</button>
           <button type="button" @click="finishBake('save')">放進包包</button>
           <button type="button" class="sell" @click="finishBake('sell')">
@@ -82,6 +86,17 @@ button {
 @media (max-height: 700px) {
   .card img { width: 112px; height: 112px; }
   h2 { font-size: 1.4rem; }
+}
+
+.debut {
+  margin: -6px 0 12px;
+  color: var(--cocoa);
+  line-height: 1.4;
+}
+
+.deliver {
+  background: var(--sea);
+  color: var(--paper);
 }
 
 .sell {

@@ -31,6 +31,7 @@ export interface Recipe {
   image: ImageKey
   required: string[]
   custom?: boolean
+  note?: string
 }
 
 export interface Captain {
@@ -85,4 +86,9 @@ export interface GameState {
   toast: ToastNote | null
   wanted: string[]
   confirmReset: boolean
+  discovered: string[]
+  orderId: string
+  orderGuest: string
+  pendingBake: BakedItem | null
+  debut: string | null
 }

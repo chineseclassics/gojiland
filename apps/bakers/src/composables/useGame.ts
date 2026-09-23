@@ -1,9 +1,9 @@
 import { computed, inject, reactive, readonly, shallowRef, watch, type InjectionKey } from 'vue'
 import { playOven, playSound, speakEnglish, stopOven } from '../game/audio'
-import { captains, ingredients, presets, tools } from '../game/catalog'
+import { captains, ingredients, tools } from '../game/catalog'
 import { sellPrice } from '../game/economy'
 import type { ImageKey } from '../game/images'
-import { matchDish } from '../game/recipes'
+import { dishes, guestImage, guestLine, guestName, matchDish, nextOrder, orderBonus, type GuestId } from '../game/recipes'
 import type { BagFilter, BakedItem, BeachCoin, GameState, Recipe, SceneId, ShopTab, SupplyWhere } from '../game/types'
 
 const SAVE_KEY = 'bakers-save-v1'
@@ -57,6 +57,10 @@ interface SaveFile {
   coins: BeachCoin[]
   tidePending: boolean
   wanted: string[]
+  discovered?: string[]
+  orderId?: string
+  orderGuest?: string
+  pendingBake?: BakedItem | null
 }
 
 function countOf(list: string[], id: string) {
@@ -92,13 +96,26 @@ function spawnCoins(amount: number): BeachCoin[] {
   }))
 }
 
+function recipeFromDish(id: string): Recipe | null {
+  const dish = dishes.find((item) => item.id === id)
+  if (!dish) return null
+  return {
+    id: dish.id,
+    name: dish.name,
+    enName: dish.enName,
+    image: dish.image,
+    required: [...dish.required],
+    note: dish.note,
+  }
+}
+
 function freshState(): GameState {
   return {
     gold: 100,
-    inventory: { flour: 2, sugar: 1, butter: 1, eggs: 1 },
+    inventory: { flour: 2, sugar: 1, butter: 1, eggs: 1, baking_soda: 1 },
     baked: [],
     scene: 'kitchen',
-    recipe: null,
+    recipe: recipeFromDish('cookies'),
     table: [],
     captainIndex: 0,
     repaired: false,
@@ -114,6 +131,11 @@ function freshState(): GameState {
     toast: null,
     wanted: [],
     confirmReset: false,
+    discovered: [],
+    orderId: 'cookies',
+    orderGuest: 'brother',
+    pendingBake: null,
+    debut: null,
   }
 }
 
@@ -122,13 +144,11 @@ function isImageKey(value: unknown): value is ImageKey {
 }
 
 function imagesSafe() {
-  return {
-    flour: 1, sugar: 1, butter: 1, eggs: 1, milk: 1, salt: 1, baking_powder: 1, baking_soda: 1,
-    yeast: 1, chocolate: 1, cream_cheese: 1, strawberry: 1, cinnamon: 1, cocoa: 1, honey: 1, vanilla: 1,
-    wood_plank: 1, hammer_nails: 1, tape: 1, lubricant: 1, screwdriver: 1, sewing_kit: 1,
-    canvas_fabric: 1, rope: 1, varnish: 1, cookies: 1, cake: 1, pie: 1, brownie: 1, bread: 1,
-    pancake: 1, cheese_tart: 1, strawberry_tart: 1, pastry: 1,
-  }
+  const keys = new Set<string>()
+  for (const item of Object.values(ingredients)) keys.add(item.image)
+  for (const item of Object.values(tools)) keys.add(item.image)
+  for (const dish of dishes) keys.add(dish.image)
+  return Object.fromEntries([...keys].map((key) => [key, 1]))
 }
 
 function asRecord(value: unknown) {
@@ -168,19 +188,33 @@ function sanitize(saved: SaveFile): GameState {
       }))
     : []
   if (saved.recipe && Array.isArray(saved.recipe.required) && isImageKey(saved.recipe.image)) {
-    const required = saved.recipe.required.filter((id) => ingredients[id])
+    const dish = dishes.find((item) => item.id === saved.recipe?.id)
+    const source = !saved.recipe.custom && dish ? dish.required : saved.recipe.required
+    const required = source.filter((id) => ingredients[id])
     if (required.length > 0) {
+      const savedRequired = saved.recipe.required.join('.')
+      const nextRequired = required.join('.')
+      const table = Array.isArray(saved.table) ? saved.table.filter((id) => ingredients[id]) : []
+      if (savedRequired !== nextRequired) {
+        for (const id of table) addCount(base.inventory, id, 1)
+        base.table = []
+      } else {
+        base.table = table
+      }
       base.recipe = {
-        id: String(saved.recipe.id),
-        name: String(saved.recipe.name).slice(0, 16),
-        enName: String(saved.recipe.enName || 'Pastry'),
-        image: saved.recipe.image,
+        id: dish && !saved.recipe.custom ? dish.id : String(saved.recipe.id),
+        name: dish && !saved.recipe.custom ? dish.name : String(saved.recipe.name).slice(0, 16),
+        enName: dish && !saved.recipe.custom ? dish.enName : String(saved.recipe.enName || 'Pastry'),
+        image: dish && !saved.recipe.custom ? dish.image : saved.recipe.image,
         required,
         custom: Boolean(saved.recipe.custom),
+        note: dish?.note,
       }
     }
   }
-  base.table = Array.isArray(saved.table) ? saved.table.filter((id) => ingredients[id]) : []
+  if (!base.recipe) {
+    base.table = Array.isArray(saved.table) ? saved.table.filter((id) => ingredients[id]) : []
+  }
   base.captainIndex = Math.min(captains.length - 1, Math.max(0, Math.floor(saved.captainIndex || 0)))
   base.repaired = Boolean(saved.repaired)
   base.thanks = typeof saved.thanks === 'string' ? saved.thanks : null
@@ -194,6 +228,23 @@ function sanitize(saved: SaveFile): GameState {
     : base.coins
   base.tidePending = Boolean(saved.tidePending)
   base.wanted = Array.isArray(saved.wanted) ? saved.wanted.filter((id) => ingredients[id] && !ingredients[id].exclusive) : []
+  base.discovered = Array.isArray(saved.discovered)
+    ? [...new Set(saved.discovered.filter((id) => dishes.some((dish) => dish.id === id)))]
+    : []
+  base.orderId = dishes.some((dish) => dish.id === saved.orderId) ? String(saved.orderId) : 'cookies'
+  const guestIds: GuestId[] = ['brother', 'jack', 'morgan', 'coral', 'luna', 'neighbor']
+  base.orderGuest = guestIds.includes(saved.orderGuest as GuestId) ? String(saved.orderGuest) : 'brother'
+  if (saved.pendingBake && isImageKey(saved.pendingBake.image) && typeof saved.pendingBake.name === 'string') {
+    base.result = {
+      id: String(saved.pendingBake.id),
+      name: saved.pendingBake.name.slice(0, 16),
+      image: saved.pendingBake.image,
+      price: Math.max(0, Math.floor(saved.pendingBake.price || 0)),
+      count: 1,
+    }
+    base.pendingBake = null
+    base.baking = false
+  }
   base.scene = 'kitchen'
   return base
 }
@@ -262,6 +313,28 @@ export function useGame() {
   const captain = computed(() => captains[state.captainIndex] ?? captains[0])
 
   const recipePrice = computed(() => (state.recipe ? sellPrice(state.recipe.required) : 0))
+
+  const order = computed(() => {
+    const dish = dishes.find((item) => item.id === state.orderId) ?? dishes[0]
+    const guestId = (['brother', 'jack', 'morgan', 'coral', 'luna', 'neighbor'] as GuestId[]).includes(state.orderGuest as GuestId)
+      ? (state.orderGuest as GuestId)
+      : 'brother'
+    const price = sellPrice(dish.required)
+    return {
+      recipeId: dish.id,
+      dishName: dish.name,
+      guestName: guestName(guestId),
+      image: guestImage(guestId),
+      line: guestLine(guestId, dish.name),
+      payout: price + orderBonus(price),
+      dishImage: dish.image,
+    }
+  })
+
+  const menuProgress = computed(() => ({
+    done: state.discovered.length,
+    total: dishes.length,
+  }))
 
   const bagEntries = computed<BagEntry[]>(() => {
     const stock: BagStock[] = Object.entries(state.inventory)
@@ -337,10 +410,10 @@ export function useGame() {
   function selectPreset(id: string) {
     if (state.baking) return
     if (state.recipe?.id === id) return
-    const preset = presets.find((item) => item.id === id)
+    const preset = dishes.find((item) => item.id === id)
     if (!preset) return
     returnTable()
-    state.recipe = { ...preset, required: [...preset.required] }
+    state.recipe = { ...preset, required: [...preset.required], note: preset.note }
     state.customOpen = false
     state.wanted = []
     playSound('recipe')
@@ -359,27 +432,28 @@ export function useGame() {
       return
     }
     returnTable()
-    const matched = matchDish(name.slice(0, 16))
     const recipeName = name.slice(0, 16)
+    const matched = matchDish(recipeName)
+    const canonical = dishes.find((dish) => dish.id === matched.id)
     state.recipe = {
-      id: `custom:${recipeName}:${matched.required.join('.')}`,
-      name: recipeName,
+      id: matched.hit ? matched.id : `custom:${recipeName}:${matched.required.join('.')}`,
+      name: matched.hit ? canonical?.name ?? recipeName : recipeName,
       enName: matched.enName,
       image: matched.image,
       required: matched.required,
-      custom: true,
+      custom: !matched.hit,
+      note: matched.note,
     }
     state.customOpen = false
     state.wanted = []
     customDraft.value = ''
     playSound('recipe')
-    toast(`「${recipeName}」的空位已經擺好了。`)
+    toast(matched.hit ? `${state.recipe.name}的空位擺好了。` : `「${recipeName}」先照奶油酥的材料來擺。`)
   }
 
   function place(id: string) {
     const item = ingredients[id]
     if (!item || state.baking) return
-    speakEnglish(item.enName)
     if (!state.recipe) {
       playSound('deny')
       toast('先選一道點心，桌上才知道要放什麼。')
@@ -399,7 +473,30 @@ export function useGame() {
     if ((state.inventory[id] ?? 0) < 1) return
     takeCount(state.inventory, id)
     state.table.push(id)
+    speakEnglish(item.enName)
     playSound('pop')
+  }
+
+  function placeFromBag() {
+    const recipe = state.recipe
+    if (!recipe || state.baking) return
+    let placed = 0
+    for (const id of recipe.required) {
+      const need = countOf(recipe.required, id)
+      while (countOf(state.table, id) < need && (state.inventory[id] ?? 0) > 0) {
+        takeCount(state.inventory, id)
+        state.table.push(id)
+        placed += 1
+      }
+    }
+    if (!placed) {
+      playSound('deny')
+      toast('包包裡沒有能放上的材料。')
+      return
+    }
+    speakEnglish(recipe.enName)
+    playSound('pop')
+    if (!prep.value.ready) toast('能放的都放上了，還缺一些。')
   }
 
   function unplace(id: string) {
@@ -423,38 +520,72 @@ export function useGame() {
     if (!prep.value.ready) {
       playSound('deny')
       const shopIds = prep.value.missing.filter((item) => item.where === 'shop').map((item) => item.id)
+      const beach = prep.value.missing.filter((item) => item.where === 'beach').map((item) => ingredients[item.id].name)
       state.wanted = shopIds
       const inBag = prep.value.missing.filter((item) => item.where === 'bag').map((item) => ingredients[item.id].name)
       if (inBag.length) toast(`${inBag.join('、')}還在包包裡，點一下放到桌上。`)
+      else if (beach.length) toast(`${beach.join('、')}要去海邊，幫船長修船才拿得到。`)
+      else if (shopIds.length) toast('還缺商店裡的材料。')
       else toast('還有空位沒放上食材。')
       return
     }
     const recipe = state.recipe
     const price = sellPrice(recipe.required)
+    const baked: BakedItem = {
+      id: recipe.id,
+      name: recipe.name,
+      image: recipe.image,
+      price,
+      count: 1,
+    }
     state.table = []
     state.baking = true
     state.wanted = []
+    state.pendingBake = baked
+    const first = rememberDish(recipe.id)
+    state.debut = first ? recipe.name : null
+    if (first) state.gold += 8
     playOven()
     const token = ++bakeToken
     window.setTimeout(() => {
       if (token !== bakeToken) return
       stopOven()
       state.baking = false
-      state.result = {
-        id: recipe.id,
-        name: recipe.name,
-        image: recipe.image,
-        price,
-        count: 1,
-      }
+      state.result = baked
       state.tidePending = true
       playSound('fanfare')
     }, 1400)
   }
 
-  function finishBake(action: 'eat' | 'save' | 'sell') {
+  function rememberDish(id: string) {
+    if (!dishes.some((dish) => dish.id === id) || state.discovered.includes(id)) return false
+    state.discovered.push(id)
+    return true
+  }
+
+  function payOrder(price: number) {
+    const bonus = orderBonus(price)
+    state.gold += price + bonus
+    const current = state.orderId
+    const next = nextOrder(state.discovered, current, exclusiveIds())
+    state.orderId = next.recipeId
+    state.orderGuest = next.guestId
+    const dish = dishes.find((item) => item.id === next.recipeId)
+    const guest = guestName(next.guestId)
+    return { paid: price + bonus, nextLine: dish ? `${guest}接著想要${dish.name}。` : '' }
+  }
+
+  function exclusiveIds() {
+    return new Set(Object.values(ingredients).filter((item) => item.exclusive).map((item) => item.id))
+  }
+
+  function finishBake(action: 'eat' | 'save' | 'sell' | 'deliver') {
     const result = state.result
     if (!result) return
+    if (action === 'deliver' && result.id !== state.orderId) {
+      playSound('deny')
+      return
+    }
     if (action === 'eat') {
       toast(`吃掉了${result.name}。廚房聞起來更香了。`)
       playSound('eat')
@@ -464,12 +595,18 @@ export function useGame() {
       else state.baked.push({ ...result })
       playSound('bag')
       toast(`${result.name}放進包包了。`)
+    } else if (action === 'deliver') {
+      const paid = payOrder(result.price)
+      playSound('fanfare')
+      toast(`送給客人了。連謝禮一共 ${paid.paid} 金幣。${paid.nextLine}`)
     } else {
       state.gold += result.price
       playSound('sell')
       toast(`賣出${result.name}，得到 ${result.price} 金幣。`)
     }
     state.result = null
+    state.debut = null
+    state.pendingBake = null
   }
 
   function eatSaved(id: string) {
@@ -489,6 +626,16 @@ export function useGame() {
     if (item.count <= 0) state.baked = state.baked.filter((baked) => baked.id !== id)
     playSound('sell')
     toast(`賣出${item.name}，得到 ${item.price} 金幣。`)
+  }
+
+  function deliverSaved(id: string) {
+    const item = state.baked.find((baked) => baked.id === id)
+    if (!item || item.id !== state.orderId) return
+    const paid = payOrder(item.price)
+    item.count -= 1
+    if (item.count <= 0) state.baked = state.baked.filter((baked) => baked.id !== id)
+    playSound('fanfare')
+    toast(`送給客人了。連謝禮一共 ${paid.paid} 金幣。${paid.nextLine}`)
   }
 
   function buy(id: string) {
@@ -597,7 +744,7 @@ export function useGame() {
     state.inventory = next.inventory
     state.baked = []
     state.scene = 'kitchen'
-    state.recipe = null
+    state.recipe = next.recipe ? { ...next.recipe, required: [...next.recipe.required] } : null
     state.table = []
     state.captainIndex = 0
     state.repaired = false
@@ -612,6 +759,11 @@ export function useGame() {
     state.result = null
     state.wanted = []
     state.confirmReset = false
+    state.discovered = []
+    state.orderId = next.orderId
+    state.orderGuest = next.orderGuest
+    state.pendingBake = null
+    state.debut = null
     customDraft.value = ''
     localStorage.removeItem(SAVE_KEY)
     toast('新的一天開始了。')
@@ -635,12 +787,16 @@ export function useGame() {
       coins: state.coins,
       tidePending: state.tidePending,
       wanted: state.wanted,
+      discovered: state.discovered,
+      orderId: state.orderId,
+      orderGuest: state.orderGuest,
+      pendingBake: state.pendingBake,
     }
     localStorage.setItem(SAVE_KEY, JSON.stringify(file))
   }
 
   watch(
-    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted],
+    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted, state.discovered, state.orderId, state.orderGuest, state.pendingBake],
     () => persist(),
     { deep: true },
   )
@@ -652,6 +808,8 @@ export function useGame() {
     tray,
     captain,
     recipePrice,
+    order,
+    menuProgress,
     bagEntries,
     bagCount,
     switchScene,
@@ -660,9 +818,11 @@ export function useGame() {
     toggleCustom,
     submitCustom,
     place,
+    placeFromBag,
     unplace,
     startBake,
     finishBake,
+    deliverSaved,
     eatSaved,
     sellSaved,
     buy,
