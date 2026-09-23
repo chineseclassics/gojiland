@@ -133,6 +133,15 @@ function renderPreview(app: CatalogApp): string {
     `;
   }
 
+  if (app.id === 'bakers') {
+    return `
+      <div class="bakers-preview">
+        <span class="bakers-oven"></span>
+        <span class="bakers-cake"></span>
+      </div>
+    `;
+  }
+
   if (app.id === 'fruit-crossing') {
     return `
       <div class="fruit-preview">

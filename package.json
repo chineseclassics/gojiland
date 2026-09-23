@@ -4,12 +4,13 @@
   "version": "0.1.0",
   "description": "A family-managed home for Goji's educational apps.",
   "scripts": {
-    "build": "npm run validate && npm --prefix apps/platform run build && npm --prefix apps/mystery-number-box run build:worker && npm --prefix apps/rollance run build:worker && npm --prefix apps/fruit-crossing run build:worker && npm --prefix apps/typing-island run build:worker",
+    "build": "npm run validate && npm --prefix apps/platform run build && npm --prefix apps/mystery-number-box run build:worker && npm --prefix apps/rollance run build:worker && npm --prefix apps/fruit-crossing run build:worker && npm --prefix apps/typing-island run build:worker && npm --prefix apps/bakers run build:worker",
     "build:platform": "npm --prefix apps/platform run build",
     "build:mystery-number-box": "npm --prefix apps/mystery-number-box run build:worker",
     "build:rollance": "npm --prefix apps/rollance run build:worker",
     "build:fruit-crossing": "npm --prefix apps/fruit-crossing run build:worker",
     "build:typing-island": "npm --prefix apps/typing-island run build:worker",
+    "build:bakers": "npm --prefix apps/bakers run build:worker",
     "validate": "node scripts/validate-apps.mjs",
     "connect-builds": "node scripts/connect-workers-builds.mjs",
     "connect-builds:audit": "node scripts/connect-workers-builds.mjs --audit"

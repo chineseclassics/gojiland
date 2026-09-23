@@ -1,0 +1,49 @@
+:root {
+  --ink: oklch(0.32 0.045 55);
+  --ink-soft: oklch(0.45 0.04 62);
+  --paper: oklch(0.965 0.018 88);
+  --paper-2: oklch(0.93 0.03 82);
+  --line: oklch(0.84 0.03 75);
+  --cocoa: oklch(0.39 0.07 48);
+  --cocoa-deep: oklch(0.3 0.055 46);
+  --apricot: oklch(0.72 0.11 68);
+  --sage: oklch(0.48 0.055 158);
+  --sea: oklch(0.45 0.07 205);
+  --gold: oklch(0.78 0.13 86);
+  --shadow: 0 18px 40px oklch(0.3 0.04 50 / 0.2);
+  color: var(--ink);
+  font-family: "Noto Sans TC", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--cocoa-deep);
+}
+
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+img { display: block; max-width: 100%; }
+p { margin: 0; }
+
+.scene-enter-active,
+.scene-leave-active {
+  transition: opacity 0.34s cubic-bezier(0.16, 1, 0.3, 1), transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scene-enter-from { opacity: 0; transform: translateY(14px); }
+.scene-leave-to { opacity: 0; transform: translateY(-8px); }
+
+.fade-enter-active,
+.fade-leave-active { transition: opacity 0.22s ease; }
+.fade-enter-from,
+.fade-leave-to { opacity: 0; }
+
+.pop-enter-active { transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease; }
+.pop-enter-from { opacity: 0; transform: translateY(10px) scale(0.96); }

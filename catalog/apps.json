@@ -50,5 +50,18 @@
     "featured": true,
     "url": "https://goji.land/typing-island/",
     "accent": "#c44a32"
+  },
+  {
+    "id": "bakers",
+    "title": "小小烘焙師",
+    "titleEn": "The Bakers",
+    "description": "選配方、擺上食材、烤出點心，再去商店和海邊湊齊下一道。",
+    "descriptionEn": "Pick a recipe, set the table, and bake. Then visit the shop and the beach for the next one.",
+    "subject": "Play",
+    "ageRange": "8–10",
+    "status": "published",
+    "featured": true,
+    "url": "https://goji.land/bakers/",
+    "accent": "#e39a4b"
   }
 ]

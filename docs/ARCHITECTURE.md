@@ -14,6 +14,7 @@ GitHub repository
 ├── apps/rollance             -> gojiland-rollance Worker
 ├── apps/fruit-crossing       -> gojiland-fruit-crossing Worker
 ├── apps/typing-island        -> gojiland-typing-island Worker
+├── apps/bakers               -> gojiland-bakers Worker
 └── future apps               -> one Worker per app
 ```
 
@@ -78,6 +79,15 @@ introduced later only when real duplication justifies it.
 | Deploy command | `npx wrangler deploy` |
 | Watch paths | `apps/typing-island/**`, `scripts/**` |
 
+### Bakers
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `/apps/bakers` |
+| Build command | `npm install && npm run build:worker` |
+| Deploy command | `npx wrangler deploy` |
+| Watch paths | `apps/bakers/**`, `scripts/**` |
+
 Connect Git once on `gojiland-platform`, then run:
 
 ```bash
@@ -98,6 +108,7 @@ specific path routes win over the platform catch-all.
 - `goji.land/rollance*` -> `gojiland-rollance`
 - `goji.land/fruit-crossing*` -> `gojiland-fruit-crossing`
 - `goji.land/typing-island*` -> `gojiland-typing-island`
+- `goji.land/bakers*` -> `gojiland-bakers`
 
 Use Cloudflare zone routes on `goji.land`. Do not create routes under
 `taixu.app`. Do not give each app its own subdomain.
@@ -109,6 +120,7 @@ Current production URLs:
 - `https://goji.land/rollance/`
 - `https://goji.land/fruit-crossing/`
 - `https://goji.land/typing-island/`
+- `https://goji.land/bakers/`
 
 ## Data
 

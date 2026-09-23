@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gojiland-bakers",
+  "compatibility_date": "2026-09-13",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": ".worker-dist",
+    "html_handling": "force-trailing-slash",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    { "pattern": "goji.land/bakers*", "zone_name": "goji.land" },
+    { "pattern": "www.goji.land/bakers*", "zone_name": "goji.land" }
+  ]
+}

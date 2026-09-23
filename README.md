@@ -13,6 +13,7 @@ their own dependencies, lockfile, build, deployment, and Cloudflare bindings.
 - `apps/rollance`: beta rolling toy-bridge game
 - `apps/fruit-crossing`: Animal Crossing–inspired fruit catching town game
 - `apps/typing-island`: English and pinyin typing adventure island
+- `apps/bakers`: picture-book baking game for ages 8–10
 
 ## Local development
 
