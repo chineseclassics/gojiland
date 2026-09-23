@@ -14,7 +14,7 @@ const { state } = useBakers()
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 22px;
+  bottom: calc(22px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 40;
   margin: 0;

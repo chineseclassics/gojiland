@@ -12,8 +12,8 @@ const { state, bagCount, switchScene, toggleBag, goLandHome } = useBakers()
     <div class="brand">
       <img class="portrait" :src="images.baker" alt="烘焙師" />
       <div>
-        <p class="mark">The Bakers</p>
-        <p class="sub">小小烘焙師</p>
+        <p class="mark">好味道烘焙屋</p>
+        <p class="sub">沙灣鎮</p>
       </div>
     </div>
 
@@ -40,8 +40,8 @@ const { state, bagCount, switchScene, toggleBag, goLandHome } = useBakers()
 .bar {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
   background: var(--paper);
   border-bottom: 1px solid var(--line);
   z-index: 5;
@@ -51,7 +51,8 @@ const { state, bagCount, switchScene, toggleBag, goLandHome } = useBakers()
   border: 0;
   background: transparent;
   color: var(--ink-soft);
-  padding: 8px 10px;
+  min-height: 44px;
+  padding: 8px 12px;
   border-radius: 999px;
   font-weight: 700;
 }
@@ -74,9 +75,9 @@ const { state, bagCount, switchScene, toggleBag, goLandHome } = useBakers()
 .mark {
   font-family: Fraunces, "Noto Serif TC", serif;
   font-weight: 680;
-  font-size: 1.25rem;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem);
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.15;
 }
 
 .sub {
@@ -116,9 +117,11 @@ const { state, bagCount, switchScene, toggleBag, goLandHome } = useBakers()
   border: 0;
   background: transparent;
   color: var(--ink-soft);
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 8px 14px;
   border-radius: 999px;
   font-weight: 700;
+  touch-action: manipulation;
 }
 
 .nav button.on {
@@ -148,11 +151,25 @@ const { state, bagCount, switchScene, toggleBag, goLandHome } = useBakers()
   color: var(--cocoa-deep);
 }
 
-@media (max-width: 720px) {
-  .bar { flex-wrap: wrap; padding: 8px 10px; }
-  .sub { display: none; }
-  .nav { width: 100%; }
-  .nav button { flex: 1; padding: 8px 4px; }
-  .purse { margin-left: 0; }
+@media (max-width: 980px) {
+  .bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "home brand purse"
+      "nav nav nav";
+    gap: 8px 10px;
+    padding: calc(6px + env(safe-area-inset-top)) 12px 8px;
+  }
+  .home { grid-area: home; }
+  .brand { grid-area: brand; }
+  .purse { grid-area: purse; margin-left: 0; }
+  .nav { grid-area: nav; width: 100%; }
+  .nav button { flex: 1; padding: 8px 6px; }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  .nav button { padding: 10px 12px; font-size: 1rem; }
+  .portrait { width: 52px; height: 52px; }
 }
 </style>

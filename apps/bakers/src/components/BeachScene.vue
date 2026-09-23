@@ -19,7 +19,7 @@ function ready() {
     <article class="card">
       <img class="face" :src="images[captain.image]" :alt="captain.name" />
       <div>
-        <p class="kicker">海邊</p>
+        <p class="kicker">沙灣鎮海邊</p>
         <h2>{{ captain.name }}</h2>
         <p class="line">{{ state.thanks || captain.plea }}</p>
       </div>
@@ -56,7 +56,7 @@ function ready() {
     </button>
 
     <p v-if="state.coins.length === 0" class="tide">
-      沙灘上這會兒沒有金幣。烤好一份點心，或幫船長修好船，潮水會再送來。
+      沙灘上這會兒沒有潮錢。烤好一份點心，或送走一艘船，下一潮會再留下。
     </p>
   </section>
 </template>
@@ -158,8 +158,10 @@ h2 {
 .sea, .quiet {
   border: 0;
   border-radius: 12px;
-  padding: 10px 12px;
+  min-height: 48px;
+  padding: 12px 14px;
   font-weight: 700;
+  flex: 1;
 }
 
 .sea { background: var(--sea); color: var(--paper); }
@@ -167,13 +169,15 @@ h2 {
 
 .coin {
   position: absolute;
+  width: 76px;
+  height: 76px;
   border: 0;
   background: transparent;
   padding: 0;
   animation: float 2.6s ease-in-out infinite;
 }
 
-.coin img { width: 62px; height: 62px; object-fit: contain; }
+.coin img { width: 68px; height: 68px; object-fit: contain; }
 
 .coin span {
   position: absolute;
@@ -202,5 +206,26 @@ h2 {
 
 @keyframes float {
   50% { transform: translateY(-7px); }
+}
+
+@media (max-width: 700px), (max-height: 700px) {
+  .card {
+    top: 10px;
+    width: min(520px, calc(100% - 20px));
+    max-height: calc(100% - 150px);
+    overflow: auto;
+    grid-template-columns: 64px 1fr;
+  }
+  .face { width: 64px; height: 64px; }
+  .coin { width: 84px; height: 84px; }
+  .coin img { width: 72px; height: 72px; }
+  .tide { bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  .card { width: min(520px, calc(100% - 32px)); }
+  .coin { width: 88px; height: 88px; }
+  .coin img { width: 78px; height: 78px; }
+  .sea, .quiet { min-height: 52px; font-size: 1.05rem; }
 }
 </style>

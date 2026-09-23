@@ -30,9 +30,10 @@ const { state, finishBake } = useBakers()
   z-index: 30;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   background: oklch(0.28 0.04 50 / 0.4);
   animation: rise 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: auto;
 }
 
 @keyframes rise {
@@ -73,8 +74,14 @@ button {
   border: 0;
   border-radius: 14px;
   background: var(--paper-2);
+  min-height: 48px;
   padding: 12px;
   font-weight: 700;
+}
+
+@media (max-height: 700px) {
+  .card img { width: 112px; height: 112px; }
+  h2 { font-size: 1.4rem; }
 }
 
 .sell {

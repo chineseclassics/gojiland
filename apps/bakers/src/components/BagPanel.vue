@@ -85,7 +85,7 @@ const filters = [
   width: min(460px, 100%);
   height: 100%;
   background: var(--paper);
-  padding: 16px;
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow);
@@ -109,7 +109,8 @@ h2 {
   border: 0;
   border-radius: 10px;
   background: var(--paper-2);
-  padding: 6px 10px;
+  min-height: 44px;
+  padding: 10px 12px;
   font-weight: 700;
 }
 
@@ -150,8 +151,13 @@ h2 {
 .tag { background: oklch(0.9 0.04 200); color: var(--sea); }
 .count { background: var(--paper-2); }
 
-.row { display: flex; gap: 4px; margin-top: 6px; }
-.row button { flex: 1; font-size: 0.75rem; padding: 6px 2px; }
+.row { display: flex; gap: 6px; margin-top: 8px; }
+.row button { flex: 1; font-size: 0.85rem; }
+
+@media (max-width: 700px) {
+  .panel { width: 100%; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .empty { color: var(--ink-soft); }
 

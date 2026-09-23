@@ -36,8 +36,12 @@ const whereText = {
 
     <div class="play">
       <article class="paper order">
-        <p class="kicker">今天做什麼</p>
+        <p class="kicker">好味道烘焙屋</p>
         <h2>先選點心，再把食材放到空位上。</h2>
+        <p class="helper">
+          <img :src="images.brother" alt="弟弟" />
+          <span>你八歲，這是家裡的店。弟弟在旁邊幫忙，點食材時會跟著唸英文。</span>
+        </p>
 
         <div class="choices">
           <button
@@ -119,7 +123,7 @@ const whereText = {
     <div class="tray">
       <div class="tray-label">
         <img :src="images.basket" alt="" />
-        <span>包包裡的食材。點一下放到空位，再點桌上的可以放回來，也會唸英文。</span>
+        <span>點一下放到空位，再點桌上的可以放回來。</span>
       </div>
       <div v-if="tray.length" class="tray-row">
         <button
@@ -143,12 +147,12 @@ const whereText = {
 
 <style scoped>
 .kitchen {
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   gap: 10px;
-  padding: 12px;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
   background-position: center 30%;
   background-size: cover;
   position: relative;
@@ -197,6 +201,24 @@ const whereText = {
   letter-spacing: 0.08em;
 }
 
+.helper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.helper img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
 .order h2, .waiting p {
   font-family: "Noto Serif TC", serif;
   font-size: 1.15rem;
@@ -220,6 +242,7 @@ const whereText = {
   background: oklch(0.98 0.01 90);
   border-radius: 14px;
   padding: 6px;
+  min-height: 64px;
 }
 
 .choice.on {
@@ -257,13 +280,15 @@ const whereText = {
   border: 1px solid var(--line);
   background: var(--paper);
   border-radius: 12px;
-  padding: 8px 10px;
+  padding: 10px 12px;
+  min-height: 44px;
 }
 
 .custom button, .bake, .quiet {
   border: 0;
   border-radius: 12px;
-  padding: 8px 12px;
+  padding: 10px 14px;
+  min-height: 44px;
   font-weight: 700;
 }
 
@@ -299,8 +324,8 @@ const whereText = {
 }
 
 .slot {
-  width: 104px;
-  min-height: 124px;
+  width: 112px;
+  min-height: 132px;
   border-radius: 14px;
   background: oklch(0.94 0.02 85);
 }
@@ -360,9 +385,10 @@ const whereText = {
 }
 
 .tray {
-  position: relative;
-  z-index: 1;
-  background: color-mix(in oklch, var(--paper) 92%, white);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: color-mix(in oklch, var(--paper) 94%, white);
   border-radius: 16px;
   padding: 8px 10px 10px;
   box-shadow: var(--shadow);
@@ -388,11 +414,12 @@ const whereText = {
 
 .piece {
   position: relative;
-  flex: 0 0 96px;
+  flex: 0 0 108px;
+  min-height: 112px;
   border: 1px solid transparent;
   background: oklch(0.96 0.015 88);
   border-radius: 14px;
-  padding: 6px 4px 8px;
+  padding: 8px 6px 10px;
   text-align: center;
 }
 
@@ -421,8 +448,31 @@ const whereText = {
 
 .empty { color: var(--ink-soft); font-size: 0.85rem; }
 
-@media (max-width: 800px) {
+@media (max-width: 900px), (max-height: 860px) {
+  .kitchen {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    justify-content: flex-start;
+  }
+  .play {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tray { position: static; }
+}
+
+@media (max-width: 900px) {
   .play { grid-template-columns: 1fr; }
-  .kitchen { overflow: auto; justify-content: flex-start; }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  .choice { min-height: 72px; }
+  .slot { width: 124px; min-height: 144px; }
+  .piece { flex-basis: 120px; min-height: 124px; }
+  .bake, .quiet, .custom button { min-height: 48px; font-size: 1rem; }
 }
 </style>

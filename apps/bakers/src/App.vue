@@ -37,11 +37,16 @@ const scene = computed(() => game.state.scene)
   flex-direction: column;
   overflow: hidden;
   background: var(--cocoa-deep);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 .stage {
   flex: 1;
   min-height: 0;
   position: relative;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 </style>

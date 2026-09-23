@@ -36,6 +36,7 @@ import coin from '../assets/items/coin.png'
 import basket from '../assets/items/basket.png'
 import satchel from '../assets/items/satchel.png'
 import baker from '../assets/people/baker.png'
+import brother from '../assets/people/brother.png'
 import jack from '../assets/people/jack.png'
 import morgan from '../assets/people/morgan.png'
 import coral from '../assets/people/coral.png'
@@ -83,6 +84,7 @@ export const images = {
   basket,
   satchel,
   baker,
+  brother,
   jack,
   morgan,
   coral,

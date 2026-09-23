@@ -15,13 +15,13 @@ function owned(id: string) {
     <div class="sheet">
       <header class="head">
         <div>
-          <p class="kicker">雜貨鋪</p>
+          <p class="kicker">沙灣鎮雜貨鋪</p>
           <h2>麵粉、奶油，還有修船的東西。</h2>
         </div>
         <button type="button" class="back" @click="switchScene('kitchen')">回廚房</button>
       </header>
 
-      <p class="note">肉桂、可可、蜂蜜和香草，這裡不賣。去海邊幫船長修船才拿得到。</p>
+      <p class="note">灣裡買得到麵粉和修船的東西。肉桂、可可、蜂蜜和香草要幫船長出海，才帶得回來。</p>
 
       <div v-if="state.wanted.length" class="wanted">
         <p>這道點心還要買</p>
@@ -80,11 +80,14 @@ function owned(id: string) {
 .sheet {
   width: min(880px, calc(100% - 24px));
   margin: 12px;
+  max-height: calc(100% - 24px);
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: color-mix(in oklch, var(--paper) 93%, white);
   border-radius: 20px;
   box-shadow: var(--shadow);
-  padding: 16px 16px 24px;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
 }
 
 .head {
@@ -116,7 +119,8 @@ h2 {
 .back {
   background: var(--cocoa);
   color: var(--paper);
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 10px 14px;
   white-space: nowrap;
 }
 
@@ -153,7 +157,8 @@ h2 {
 
 .tabs button {
   background: var(--paper-2);
-  padding: 8px 14px;
+  min-height: 44px;
+  padding: 10px 16px;
 }
 
 .tabs button.on {
@@ -197,7 +202,20 @@ h3 { margin: 4px 0 0; font-size: 1rem; }
   gap: 4px;
   background: var(--cocoa);
   color: var(--paper);
-  padding: 8px;
+  min-height: 44px;
+  padding: 10px;
+}
+
+@media (max-width: 640px) {
+  .shop { align-items: stretch; }
+  .sheet { width: auto; margin: 8px; max-height: calc(100% - 16px); }
+  .head { flex-wrap: wrap; }
+  .grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 641px) and (max-width: 1180px) {
+  .grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .card button, .tabs button, .back { min-height: 48px; font-size: 1rem; }
 }
 
 .card button img { width: 18px; height: 18px; }
