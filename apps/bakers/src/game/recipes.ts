@@ -112,7 +112,7 @@ export const dishes: Dish[] = [
     required: ['flour', 'sugar', 'eggs', 'milk', 'cocoa'],
     category: 'cake',
     keywords: ['巧克力蛋糕', 'chocolate cake'],
-    note: '可可粉要幫摩根船長修船才有。',
+    note: '可可粉商店沒有，要等船長靠岸，幫他修船才有。',
   },
   {
     id: 'cake',
@@ -131,7 +131,7 @@ export const dishes: Dish[] = [
     required: ['flour', 'sugar', 'butter', 'eggs', 'vanilla'],
     category: 'cake',
     keywords: ['香草蛋糕', 'vanilla cake'],
-    note: '香草精要幫露娜船長修船才有。',
+    note: '香草精商店沒有，要等船長靠岸，幫他修船才有。',
   },
   {
     id: 'banana_bread',
@@ -187,7 +187,7 @@ export const dishes: Dish[] = [
     required: ['flour', 'butter', 'sugar', 'apple', 'cinnamon'],
     category: 'tart',
     keywords: ['蘋果派', 'apple pie', '肉桂派', '派', 'pie'],
-    note: '肉桂粉要幫傑克船長修船才有。',
+    note: '肉桂粉商店沒有，要等船長靠岸，幫他修船才有。',
   },
   {
     id: 'cheese_tart',
@@ -269,7 +269,7 @@ export const dishes: Dish[] = [
     required: ['flour', 'milk', 'eggs', 'honey', 'baking_powder'],
     category: 'snack',
     keywords: ['蜂蜜鬆餅', '蜂蜜蛋糕', '鬆餅', 'pancake'],
-    note: '百花蜜要幫蔻拉船長修船才有。',
+    note: '百花蜜商店沒有，要等船長靠岸，幫他修船才有。',
   },
   {
     id: 'croissant',

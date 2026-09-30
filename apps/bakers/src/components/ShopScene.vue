@@ -21,7 +21,7 @@ function owned(id: string) {
         <button type="button" class="back" @click="switchScene('kitchen')">回廚房</button>
       </header>
 
-      <p class="note">灣裡買得到麵粉和修船的東西。肉桂、可可、蜂蜜和香草要幫船長出海，才帶得回來。</p>
+      <p class="note">灣裡買得到麵粉和修船的東西。肉桂、可可、蜂蜜和香草要等船長靠岸，每趟船帶的不一樣。</p>
 
       <div v-if="state.wanted.length" class="wanted">
         <p>這道點心還要買</p>

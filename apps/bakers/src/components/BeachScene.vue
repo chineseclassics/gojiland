@@ -31,9 +31,10 @@ function ready() {
         </li>
       </ul>
 
-      <p v-if="state.repaired" class="reward">
-        <img :src="images[ingredients[captain.rewardItem].image]" alt="" />
-        謝禮已經放進包包。
+      <p v-if="ingredients[state.cargoItem]" class="reward">
+        <img :src="images[ingredients[state.cargoItem].image]" alt="" />
+        <span v-if="state.repaired">{{ ingredients[state.cargoItem].name }}已經放進包包。</span>
+        <span v-else>這趟帶來了{{ ingredients[state.cargoItem].name }} ×{{ captain.rewardCount }}。</span>
       </p>
 
       <div class="actions">
