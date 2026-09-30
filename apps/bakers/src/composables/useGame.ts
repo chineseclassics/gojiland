@@ -55,6 +55,7 @@ interface SaveFile {
   repaired: boolean
   thanks: string | null
   coins: BeachCoin[]
+  captainDocked?: boolean
   tidePending: boolean
   wanted: string[]
   discovered?: string[]
@@ -118,6 +119,7 @@ function freshState(): GameState {
     recipe: recipeFromDish('cookies'),
     table: [],
     captainIndex: 0,
+    captainDocked: false,
     repaired: false,
     thanks: null,
     coins: spawnCoins(4),
@@ -217,6 +219,7 @@ function sanitize(saved: SaveFile): GameState {
   }
   base.captainIndex = Math.min(captains.length - 1, Math.max(0, Math.floor(saved.captainIndex || 0)))
   base.repaired = Boolean(saved.repaired)
+  base.captainDocked = typeof saved.captainDocked === 'boolean' ? saved.captainDocked : !base.repaired
   base.thanks = typeof saved.thanks === 'string' ? saved.thanks : null
   base.coins = Array.isArray(saved.coins)
     ? saved.coins.filter((coin) => coin && typeof coin.amount === 'number').map((coin, index) => ({
@@ -386,6 +389,10 @@ export function useGame() {
       state.captainIndex = (state.captainIndex + 1) % captains.length
       state.repaired = false
       state.thanks = null
+      state.captainDocked = false
+    }
+    if (scene === 'beach' && !state.captainDocked) {
+      state.captainDocked = Math.random() < 1 / 3
     }
     state.scene = scene
     state.bagOpen = false
@@ -524,7 +531,7 @@ export function useGame() {
       state.wanted = shopIds
       const inBag = prep.value.missing.filter((item) => item.where === 'bag').map((item) => ingredients[item.id].name)
       if (inBag.length) toast(`${inBag.join('、')}還在包包裡，點一下放到桌上。`)
-      else if (beach.length) toast(`${beach.join('、')}要去海邊，幫船長修船才拿得到。`)
+      else if (beach.length) toast(`${beach.join('、')}要等船長偶爾靠岸，幫他修船才拿得到。`)
       else if (shopIds.length) toast('還缺商店裡的材料。')
       else toast('還有空位沒放上食材。')
       return
@@ -654,10 +661,11 @@ export function useGame() {
   }
 
   function repair() {
+    if (!state.captainDocked) return
     const current = captains[state.captainIndex]
     if (state.repaired) {
       playSound('deny')
-      toast('這艘船已經修好了。離開海邊再回來，會遇見下一位船長。')
+      toast('這艘船已經修好了。離開海邊以後，下一潮偶爾才會再有船長。')
       return
     }
     const missing = current.tools.filter((id) => (state.inventory[id] ?? 0) < 1)
@@ -672,7 +680,7 @@ export function useGame() {
     addCount(state.inventory, current.rewardItem, current.rewardCount)
     state.repaired = true
     state.tidePending = true
-    state.thanks = `船修好了。謝禮是 ${current.rewardGold} 金幣，還有${reward.name} ×${current.rewardCount}。離開海邊再回來，會遇見下一位船長。`
+    state.thanks = `船修好了。謝禮是 ${current.rewardGold} 金幣，還有${reward.name} ×${current.rewardCount}。這艘船要出航了，下一潮偶爾才會再有船長靠岸。`
     playSound('hammer')
     window.setTimeout(() => playSound('fanfare'), 220)
     arriveTide()
@@ -747,6 +755,7 @@ export function useGame() {
     state.recipe = next.recipe ? { ...next.recipe, required: [...next.recipe.required] } : null
     state.table = []
     state.captainIndex = 0
+    state.captainDocked = false
     state.repaired = false
     state.thanks = null
     state.coins = next.coins
@@ -782,6 +791,7 @@ export function useGame() {
       recipe: state.recipe,
       table: state.table,
       captainIndex: state.captainIndex,
+      captainDocked: state.captainDocked,
       repaired: state.repaired,
       thanks: state.thanks,
       coins: state.coins,
@@ -796,7 +806,7 @@ export function useGame() {
   }
 
   watch(
-    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted, state.discovered, state.orderId, state.orderGuest, state.pendingBake],
+    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.captainDocked, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted, state.discovered, state.orderId, state.orderGuest, state.pendingBake],
     () => persist(),
     { deep: true },
   )

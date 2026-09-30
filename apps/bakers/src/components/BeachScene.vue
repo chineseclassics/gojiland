@@ -16,7 +16,7 @@ function ready() {
 
 <template>
   <section class="beach" :style="{ backgroundImage: `url(${images.beach})` }">
-    <article class="card">
+    <article v-if="state.captainDocked" class="card">
       <img class="face" :src="images[captain.image]" :alt="captain.name" />
       <div>
         <p class="kicker">沙灣鎮海邊</p>
@@ -43,6 +43,18 @@ function ready() {
       </div>
     </article>
 
+    <article v-else class="card alone">
+      <div>
+        <p class="kicker">沙灣鎮海邊</p>
+        <h2>這一潮沒有船</h2>
+        <p class="line">
+          沙灘上可以撿潮水留下的金幣。{{ captain.name }}偶爾才會把船停過來。
+          <template v-if="state.coins.length === 0">這一潮的東西撿完了。再烤一份點心，下一潮會再送來。</template>
+        </p>
+      </div>
+      <button type="button" class="quiet" @click="switchScene('kitchen')">回廚房</button>
+    </article>
+
     <button
       v-for="(coin, index) in state.coins"
       :key="coin.id"
@@ -55,8 +67,8 @@ function ready() {
       <span>{{ coin.amount }}</span>
     </button>
 
-    <p v-if="state.coins.length === 0" class="tide">
-      沙灘上這會兒沒有潮錢。烤好一份點心，或送走一艘船，下一潮會再留下。
+    <p v-if="state.captainDocked && state.coins.length === 0" class="tide">
+      沙灘上這會兒沒有潮錢。烤好一份點心，或送走這艘船，下一潮會再留下。
     </p>
   </section>
 </template>
@@ -91,6 +103,12 @@ function ready() {
   object-fit: cover;
   grid-row: span 2;
 }
+
+.alone {
+  grid-template-columns: 1fr;
+}
+
+.alone .quiet { width: 100%; }
 
 .kicker {
   font-family: "Noto Serif TC", serif;

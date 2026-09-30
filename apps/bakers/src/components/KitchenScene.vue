@@ -31,7 +31,7 @@ function filled(id: string) {
 const whereText = {
   bag: '還在包包裡，點下面放上來',
   shop: '商店買得到',
-  beach: '要去海邊找船長',
+  beach: '要去海邊，等船長偶爾靠岸',
 } as const
 </script>
 

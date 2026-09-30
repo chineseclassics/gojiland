@@ -73,6 +73,7 @@ export interface GameState {
   recipe: Recipe | null
   table: string[]
   captainIndex: number
+  captainDocked: boolean
   repaired: boolean
   thanks: string | null
   coins: BeachCoin[]
