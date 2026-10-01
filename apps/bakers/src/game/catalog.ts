@@ -56,7 +56,7 @@ export const captains: Captain[] = [
     id: 'morgan',
     name: '摩根船長',
     image: 'morgan',
-    plea: '我在沙灣鎮跑船最久。這回船舵卡住了，潤滑油和螺絲起子能讓它重新轉動。這趟船上的香料送給你。',
+    plea: '我在香味小島跑船最久。這回船舵卡住了，潤滑油和螺絲起子能讓它重新轉動。這趟船上的香料送給你。',
     tools: ['lubricant', 'screwdriver'],
     rewardGold: 40,
     rewardItem: 'cocoa',

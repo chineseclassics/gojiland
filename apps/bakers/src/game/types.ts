@@ -75,6 +75,7 @@ export interface GameState {
   captainIndex: number
   captainDocked: boolean
   cargoItem: string
+  lastCargo: string
   repaired: boolean
   thanks: string | null
   coins: BeachCoin[]

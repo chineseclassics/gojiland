@@ -58,6 +58,7 @@ interface SaveFile {
   captainDocked?: boolean
   tidePending: boolean
   cargoItem?: string
+  lastCargo?: string
   wanted: string[]
   discovered?: string[]
   orderId?: string
@@ -122,6 +123,7 @@ function freshState(): GameState {
     captainIndex: 0,
     captainDocked: false,
     cargoItem: '',
+    lastCargo: '',
     repaired: false,
     thanks: null,
     coins: spawnCoins(4),
@@ -223,6 +225,7 @@ function sanitize(saved: SaveFile): GameState {
   base.repaired = Boolean(saved.repaired)
   base.captainDocked = typeof saved.captainDocked === 'boolean' ? saved.captainDocked : !base.repaired
   base.cargoItem = ingredients[String(saved.cargoItem)]?.exclusive ? String(saved.cargoItem) : ''
+  base.lastCargo = ingredients[String(saved.lastCargo)]?.exclusive ? String(saved.lastCargo) : ''
   base.thanks = typeof saved.thanks === 'string' ? saved.thanks : null
   base.coins = Array.isArray(saved.coins)
     ? saved.coins.filter((coin) => coin && typeof coin.amount === 'number').map((coin, index) => ({
@@ -388,29 +391,25 @@ export function useGame() {
 
   function pickCargo(previous: string) {
     const spices = Object.values(ingredients).filter((item) => item.exclusive).map((item) => item.id)
-    const missing = (state.recipe?.required ?? []).filter((id) => ingredients[id]?.exclusive && (state.inventory[id] ?? 0) < 1)
-    const pool = spices.filter((id) => id !== previous)
-    const choices = pool.length ? pool : spices
-    const tickets = choices.flatMap((id) => (missing.includes(id) ? [id, id] : [id]))
-    return tickets[Math.floor(Math.random() * tickets.length)] ?? spices[0]
+    const choices = spices.filter((id) => id !== previous)
+    const pool = choices.length ? choices : spices
+    return pool[Math.floor(Math.random() * pool.length)] ?? spices[0]
   }
 
   function switchScene(scene: SceneId) {
     if (state.scene === scene) return
-    let sailedWith = ''
     if (scene === 'beach' && state.repaired) {
-      sailedWith = state.cargoItem
+      if (ingredients[state.cargoItem]?.exclusive) state.lastCargo = state.cargoItem
       state.captainIndex = (state.captainIndex + 1) % captains.length
       state.repaired = false
       state.thanks = null
       state.captainDocked = false
       state.cargoItem = ''
-    }
-    if (scene === 'beach' && !state.captainDocked) {
+    } else if (scene === 'beach' && !state.captainDocked) {
       state.captainDocked = Math.random() < 1 / 3
     }
     if (scene === 'beach' && state.captainDocked && !ingredients[state.cargoItem]?.exclusive) {
-      state.cargoItem = pickCargo(sailedWith)
+      state.cargoItem = pickCargo(state.lastCargo)
     }
     state.scene = scene
     state.bagOpen = false
@@ -702,7 +701,7 @@ export function useGame() {
     addCount(state.inventory, reward.id, current.rewardCount)
     state.repaired = true
     state.tidePending = true
-    state.thanks = `船修好了。謝禮是 ${current.rewardGold} 金幣，還有${reward.name} ×${current.rewardCount}。這艘船要出航了，下一潮偶爾才會再有船長靠岸。`
+    state.thanks = `船修好了。謝禮是 ${current.rewardGold} 金幣，還有${reward.name} ×${current.rewardCount}。這艘船要出航了。回到海邊時，這一潮先沒有船。`
     playSound('hammer')
     window.setTimeout(() => playSound('fanfare'), 220)
     arriveTide()
@@ -779,6 +778,7 @@ export function useGame() {
     state.captainIndex = 0
     state.captainDocked = false
     state.cargoItem = ''
+    state.lastCargo = ''
     state.repaired = false
     state.thanks = null
     state.coins = next.coins
@@ -816,6 +816,7 @@ export function useGame() {
       captainIndex: state.captainIndex,
       captainDocked: state.captainDocked,
       cargoItem: state.cargoItem,
+      lastCargo: state.lastCargo,
       repaired: state.repaired,
       thanks: state.thanks,
       coins: state.coins,
@@ -830,7 +831,7 @@ export function useGame() {
   }
 
   watch(
-    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.captainDocked, state.cargoItem, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted, state.discovered, state.orderId, state.orderGuest, state.pendingBake],
+    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.captainDocked, state.cargoItem, state.lastCargo, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted, state.discovered, state.orderId, state.orderGuest, state.pendingBake],
     () => persist(),
     { deep: true },
   )

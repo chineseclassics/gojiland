@@ -13,7 +13,7 @@ const { state, bagCount, switchScene, toggleBag, goLandHome } = useBakers()
       <img class="portrait" :src="images.baker" alt="烘焙師" />
       <div>
         <p class="mark">好味道烘焙屋</p>
-        <p class="sub">沙灣鎮</p>
+        <p class="sub">香味小島</p>
       </div>
     </div>
 

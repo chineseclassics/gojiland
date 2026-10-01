@@ -398,7 +398,7 @@ export function guestLine(guest: GuestId, dishName: string) {
   if (guest === 'morgan') return `摩根船長說，長途航行要帶一份${dishName}。`
   if (guest === 'coral') return `蔻拉船長想給船上的人帶一份${dishName}。`
   if (guest === 'luna') return `露娜船長夜航前，想帶一份${dishName}。`
-  return `沙灣鎮的鄰居聞到香味，想來買一份${dishName}。`
+  return `香味小島的鄰居聞到香味，想來買一份${dishName}。`
 }
 
 export function guestImage(guest: GuestId): ImageKey {

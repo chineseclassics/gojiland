@@ -19,7 +19,7 @@ function ready() {
     <article v-if="state.captainDocked" class="card">
       <img class="face" :src="images[captain.image]" :alt="captain.name" />
       <div>
-        <p class="kicker">沙灣鎮海邊</p>
+        <p class="kicker">香味小島海邊</p>
         <h2>{{ captain.name }}</h2>
         <p class="line">{{ state.thanks || captain.plea }}</p>
       </div>
@@ -46,10 +46,10 @@ function ready() {
 
     <article v-else class="card alone">
       <div>
-        <p class="kicker">沙灣鎮海邊</p>
+        <p class="kicker">香味小島海邊</p>
         <h2>這一潮沒有船</h2>
         <p class="line">
-          沙灘上可以撿潮水留下的金幣。{{ captain.name }}偶爾才會把船停過來。
+          沙灘上可以撿潮水留下的金幣。船長要過幾潮，才偶爾靠岸，每次帶來的香料也不一樣。
           <template v-if="state.coins.length === 0">這一潮的東西撿完了。再烤一份點心，下一潮會再送來。</template>
         </p>
       </div>

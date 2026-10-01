@@ -15,13 +15,13 @@ function owned(id: string) {
     <div class="sheet">
       <header class="head">
         <div>
-          <p class="kicker">沙灣鎮雜貨鋪</p>
+          <p class="kicker">香味小島雜貨鋪</p>
           <h2>麵粉、奶油，還有修船的東西。</h2>
         </div>
         <button type="button" class="back" @click="switchScene('kitchen')">回廚房</button>
       </header>
 
-      <p class="note">灣裡買得到麵粉和修船的東西。肉桂、可可、蜂蜜和香草要等船長靠岸，每趟船帶的不一樣。</p>
+      <p class="note">島上買得到麵粉和修船的東西。肉桂、可可、蜂蜜和香草要等船長靠岸，每趟船帶的不一樣。</p>
 
       <div v-if="state.wanted.length" class="wanted">
         <p>這道點心還要買</p>
