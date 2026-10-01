@@ -73,6 +73,7 @@ export interface GameState {
   recipe: Recipe | null
   table: string[]
   captainIndex: number
+  lastCaptain: number
   captainDocked: boolean
   cargoItem: string
   lastCargo: string

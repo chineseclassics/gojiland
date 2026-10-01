@@ -48,10 +48,7 @@ function ready() {
       <div>
         <p class="kicker">香味小島海邊</p>
         <h2>這一潮沒有船</h2>
-        <p class="line">
-          沙灘上可以撿潮水留下的金幣。船長要過幾潮，才偶爾靠岸，每次帶來的香料也不一樣。
-          <template v-if="state.coins.length === 0">這一潮的東西撿完了。再烤一份點心，下一潮會再送來。</template>
-        </p>
+        <p class="line">海很安靜，船還沒靠過來。</p>
       </div>
       <button type="button" class="quiet" @click="switchScene('kitchen')">回廚房</button>
     </article>
@@ -68,9 +65,6 @@ function ready() {
       <span>{{ coin.amount }}</span>
     </button>
 
-    <p v-if="state.captainDocked && state.coins.length === 0" class="tide">
-      沙灘上這會兒沒有潮錢。烤好一份點心，或送走這艘船，下一潮會再留下。
-    </p>
   </section>
 </template>
 
@@ -210,19 +204,6 @@ h2 {
   padding: 1px 5px;
 }
 
-.tide {
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
-  max-width: min(420px, calc(100% - 32px));
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: color-mix(in oklch, var(--paper) 90%, white);
-  color: var(--ink-soft);
-  font-size: 0.85rem;
-}
-
 @keyframes float {
   50% { transform: translateY(-7px); }
 }
@@ -238,7 +219,6 @@ h2 {
   .face { width: 64px; height: 64px; }
   .coin { width: 84px; height: 84px; }
   .coin img { width: 72px; height: 72px; }
-  .tide { bottom: calc(12px + env(safe-area-inset-bottom)); }
 }
 
 @media (min-width: 768px) and (max-width: 1180px) {

@@ -52,6 +52,7 @@ interface SaveFile {
   recipe: Recipe | null
   table: string[]
   captainIndex: number
+  lastCaptain?: number
   repaired: boolean
   thanks: string | null
   coins: BeachCoin[]
@@ -121,6 +122,7 @@ function freshState(): GameState {
     recipe: recipeFromDish('cookies'),
     table: [],
     captainIndex: 0,
+    lastCaptain: -1,
     captainDocked: false,
     cargoItem: '',
     lastCargo: '',
@@ -221,12 +223,19 @@ function sanitize(saved: SaveFile): GameState {
   if (!base.recipe) {
     base.table = Array.isArray(saved.table) ? saved.table.filter((id) => ingredients[id]) : []
   }
-  base.captainIndex = Math.min(captains.length - 1, Math.max(0, Math.floor(saved.captainIndex || 0)))
-  base.repaired = Boolean(saved.repaired)
-  base.captainDocked = typeof saved.captainDocked === 'boolean' ? saved.captainDocked : !base.repaired
-  base.cargoItem = ingredients[String(saved.cargoItem)]?.exclusive ? String(saved.cargoItem) : ''
-  base.lastCargo = ingredients[String(saved.lastCargo)]?.exclusive ? String(saved.lastCargo) : ''
-  base.thanks = typeof saved.thanks === 'string' ? saved.thanks : null
+  const savedCaptain = Math.floor(saved.captainIndex || 0)
+  const savedLast = typeof saved.lastCaptain === 'number' ? Math.floor(saved.lastCaptain) : saved.captainDocked ? savedCaptain : -1
+  base.lastCaptain = savedLast >= 0 && savedLast < captains.length ? savedLast : -1
+  base.captainIndex = base.lastCaptain >= 0 ? base.lastCaptain : 0
+  base.repaired = false
+  base.captainDocked = false
+  base.cargoItem = ''
+  base.lastCargo = ingredients[String(saved.lastCargo)]?.exclusive
+    ? String(saved.lastCargo)
+    : ingredients[String(saved.cargoItem)]?.exclusive
+      ? String(saved.cargoItem)
+      : ''
+  base.thanks = null
   base.coins = Array.isArray(saved.coins)
     ? saved.coins.filter((coin) => coin && typeof coin.amount === 'number').map((coin, index) => ({
         id: String(coin.id || `coin-saved-${index}`),
@@ -396,20 +405,40 @@ export function useGame() {
     return pool[Math.floor(Math.random() * pool.length)] ?? spices[0]
   }
 
+  function pickCaptain(previous: number) {
+    const choices = captains.map((_, index) => index).filter((index) => index !== previous)
+    const pool = choices.length ? choices : captains.map((_, index) => index)
+    return pool[Math.floor(Math.random() * pool.length)] ?? 0
+  }
+
+  function rollTide() {
+    state.repaired = false
+    state.thanks = null
+    state.cargoItem = ''
+    state.captainDocked = Math.random() < 1 / 3
+    if (!state.captainDocked) return
+    state.captainIndex = pickCaptain(state.lastCaptain)
+    state.lastCaptain = state.captainIndex
+    state.cargoItem = pickCargo(state.lastCargo)
+  }
+
+  let holdShip = false
+
   function switchScene(scene: SceneId) {
     if (state.scene === scene) return
+    const keepShip = scene === 'beach' && holdShip && state.captainDocked && !state.repaired
+    if (state.scene === 'beach' && scene === 'shop' && state.captainDocked && !state.repaired) holdShip = true
+    else if (scene !== 'beach') holdShip = false
     if (scene === 'beach' && state.repaired) {
       if (ingredients[state.cargoItem]?.exclusive) state.lastCargo = state.cargoItem
-      state.captainIndex = (state.captainIndex + 1) % captains.length
+      state.lastCaptain = state.captainIndex
       state.repaired = false
       state.thanks = null
       state.captainDocked = false
       state.cargoItem = ''
-    } else if (scene === 'beach' && !state.captainDocked) {
-      state.captainDocked = Math.random() < 1 / 3
-    }
-    if (scene === 'beach' && state.captainDocked && !ingredients[state.cargoItem]?.exclusive) {
-      state.cargoItem = pickCargo(state.lastCargo)
+      holdShip = false
+    } else if (scene === 'beach' && !keepShip) {
+      rollTide()
     }
     state.scene = scene
     state.bagOpen = false
@@ -682,7 +711,7 @@ export function useGame() {
     const current = captains[state.captainIndex]
     if (state.repaired) {
       playSound('deny')
-      toast('這艘船已經修好了。離開海邊以後，下一潮偶爾才會再有船長。')
+      toast('這艘船已經修好了。')
       return
     }
     const missing = current.tools.filter((id) => (state.inventory[id] ?? 0) < 1)
@@ -701,7 +730,7 @@ export function useGame() {
     addCount(state.inventory, reward.id, current.rewardCount)
     state.repaired = true
     state.tidePending = true
-    state.thanks = `船修好了。謝禮是 ${current.rewardGold} 金幣，還有${reward.name} ×${current.rewardCount}。這艘船要出航了。回到海邊時，這一潮先沒有船。`
+    state.thanks = `船修好了。謝禮是 ${current.rewardGold} 金幣，還有${reward.name} ×${current.rewardCount}。這艘船要出航了。`
     playSound('hammer')
     window.setTimeout(() => playSound('fanfare'), 220)
     arriveTide()
@@ -776,7 +805,9 @@ export function useGame() {
     state.recipe = next.recipe ? { ...next.recipe, required: [...next.recipe.required] } : null
     state.table = []
     state.captainIndex = 0
+    state.lastCaptain = -1
     state.captainDocked = false
+    holdShip = false
     state.cargoItem = ''
     state.lastCargo = ''
     state.repaired = false
@@ -814,6 +845,7 @@ export function useGame() {
       recipe: state.recipe,
       table: state.table,
       captainIndex: state.captainIndex,
+      lastCaptain: state.lastCaptain,
       captainDocked: state.captainDocked,
       cargoItem: state.cargoItem,
       lastCargo: state.lastCargo,
@@ -831,7 +863,7 @@ export function useGame() {
   }
 
   watch(
-    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.captainDocked, state.cargoItem, state.lastCargo, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted, state.discovered, state.orderId, state.orderGuest, state.pendingBake],
+    () => [state.gold, state.inventory, state.baked, state.recipe, state.table, state.captainIndex, state.lastCaptain, state.captainDocked, state.cargoItem, state.lastCargo, state.repaired, state.thanks, state.coins, state.tidePending, state.wanted, state.discovered, state.orderId, state.orderGuest, state.pendingBake],
     () => persist(),
     { deep: true },
   )
