@@ -1,5 +1,6 @@
 import './styles.css';
 import RAPIER from '@dimforge/rapier3d-compat';
+import { BloomEffect, EffectComposer, EffectPass, RenderPass, VignetteEffect } from 'postprocessing';
 import * as THREE from 'three';
 
 type StoryPortal = 'meadow' | 'sky' | 'home' | 'slime';
@@ -399,7 +400,7 @@ const startButton = requiredElement<HTMLButtonElement>('#start-button');
 const continueButton = requiredElement<HTMLButtonElement>('#continue-button');
 const hintButton = requiredElement<HTMLButtonElement>('#hint-button');
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -410,6 +411,25 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 180);
 const cameraTarget = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
+const composer = new EffectComposer(renderer, {
+  multisampling: window.innerWidth < 800 ? 2 : 4,
+  frameBufferType: THREE.HalfFloatType
+});
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(
+  new EffectPass(
+    camera,
+    new BloomEffect({
+      intensity: 0.42,
+      luminanceThreshold: 0.94,
+      luminanceSmoothing: 0.12,
+      mipmapBlur: true,
+      radius: 0.42,
+      levels: 5
+    }),
+    new VignetteEffect({ darkness: 0.38, offset: 0.34 })
+  )
+);
 const sun = new THREE.DirectionalLight(0xfff6e4, 2.35);
 const sunTarget = new THREE.Object3D();
 sun.castShadow = true;
@@ -436,6 +456,7 @@ const held = { left: false, right: false, up: false, down: false, x: 0, y: 0 };
 
 let world: RAPIER.World;
 let ballBody: RAPIER.RigidBody | null = null;
+let ballRig: THREE.Group | null = null;
 let ballMesh: THREE.Mesh | null = null;
 let returnPoint: ReturnPoint | null = null;
 let animationId = 0;
@@ -444,7 +465,14 @@ let messageTimer = 0;
 let respawnCooldown = 0;
 let pending: Pending = 'none';
 let pointerId: number | null = null;
+let hitstop = 0;
+let shake = 0;
+let squash = 1;
+let lastVy = 0;
+let landCooldown = 0;
+let audio: AudioContext | null = null;
 const inputVector = new THREE.Vector2();
+const shards: { mesh: THREE.Mesh; velocity: THREE.Vector3; life: number }[] = [];
 
 setupUI();
 resize();
@@ -471,6 +499,7 @@ function setupUI(): void {
   updateHud();
 
   controlPad.addEventListener('pointerdown', (event) => {
+    wakeAudio();
     pointerId = event.pointerId;
     controlPad.setPointerCapture(event.pointerId);
     updateStick(event);
@@ -482,6 +511,7 @@ function setupUI(): void {
   controlPad.addEventListener('pointercancel', clearStick);
 
   window.addEventListener('keydown', (event) => {
+    wakeAudio();
     if (!event.repeat) setKey(event.key, true);
     if (isControlKey(event.key) && appState.started && !appState.paused) event.preventDefault();
   });
@@ -490,6 +520,7 @@ function setupUI(): void {
   });
 
   startButton.addEventListener('click', () => {
+    wakeAudio();
     if (!ballBody) return;
     appState.started = true;
     appState.paused = false;
@@ -611,6 +642,13 @@ const FIXED_STEP = 1 / 60;
 
 function updateGame(delta: number): void {
   if (respawnCooldown > 0) respawnCooldown -= delta;
+  if (landCooldown > 0) landCooldown -= delta;
+  if (hitstop > 0) {
+    hitstop -= delta;
+    flushPending();
+    decayMessage(delta);
+    return;
+  }
   simTime += Math.min(delta, 0.05);
   if (simTime >= FIXED_STEP) {
     world.timestep = FIXED_STEP;
@@ -681,6 +719,7 @@ function scanPickups(pos: Vec3, speed: number): void {
       gained += record.value;
     } else if (record.kind === 'breakable') {
       if (speed >= BREAK_SPEED) {
+        burst(record.mesh.position, 0x8be05c);
         take(record, true);
         gained += record.value;
         broke = true;
@@ -706,8 +745,10 @@ function scanPickups(pos: Vec3, speed: number): void {
   if (gained > 0) {
     const note = broke && gained === 15 ? '撞碎綠色方塊 +15' : broke ? `撞碎方塊，+${gained} 金幣` : `+${gained} 金幣`;
     addCoins(gained, note);
+    playJuice(broke ? 'break' : 'coin');
   }
   if (keyNote) {
+    playJuice('key');
     showMessage('拿到鑰匙。過關後可以打開三個寶箱。');
     updateHud();
   }
@@ -725,6 +766,7 @@ function bump(record: BodyRecord): void {
   const now = performance.now();
   if (now - (bumpCooldown.get(record.id) ?? 0) < 2200) return;
   bumpCooldown.set(record.id, now);
+  playJuice('bump');
   showMessage(`這個${record.label}不能打碎，從旁邊繞過去。`);
 }
 
@@ -778,6 +820,9 @@ function resetBall(): void {
   ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   ballBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
   ballBody.wakeUp();
+  squash = 1;
+  lastVy = 0;
+  if (ballRig) ballRig.scale.set(1, 1, 1);
 }
 
 function finishRun(): void {
@@ -915,12 +960,14 @@ function buildWorld(portal: PortalId, spawn: THREE.Vector3): void {
 }
 
 function clearWorld(): void {
+  shards.length = 0;
   for (const record of records) {
     if (!record.removed) world.removeRigidBody(record.body);
   }
   records.length = 0;
   if (ballBody) world.removeRigidBody(ballBody);
   ballBody = null;
+  ballRig = null;
   ballMesh = null;
   const materials = new Set<THREE.Material>();
   loaderGroup.traverse((object) => {
@@ -1030,7 +1077,13 @@ function addCoin(id: string, x: number, z: number): void {
   const group = new THREE.Group();
   const coin = new THREE.Mesh(
     new THREE.CylinderGeometry(0.28, 0.28, 0.08, 7),
-    new THREE.MeshStandardMaterial({ color: 0xffc93f, roughness: 0.42, metalness: 0.28 })
+    new THREE.MeshStandardMaterial({
+      color: 0xffc93f,
+      emissive: 0xffb020,
+      emissiveIntensity: 0.7,
+      roughness: 0.32,
+      metalness: 0.22
+    })
   );
   coin.rotation.x = Math.PI / 2;
   group.add(coin);
@@ -1066,12 +1119,23 @@ function addHousehold(id: string, x: number, z: number, shape: 'book' | 'cup' | 
   if (shape === 'book') {
     label = '書本';
     y = 0.16;
-    group.add(new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.32, 1.9), new THREE.MeshStandardMaterial({ color: 0x4b8ac9, roughness: 0.82 })));
+    const cover = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.32, 1.9), new THREE.MeshStandardMaterial({ color: 0x4b8ac9, roughness: 0.82 }));
+    const pages = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.18, 1.72), new THREE.MeshStandardMaterial({ color: 0xf3efe2, roughness: 0.9 }));
+    pages.position.y = 0.04;
+    group.add(cover, pages);
     colliderDesc = RAPIER.ColliderDesc.cuboid(0.72, 0.16, 0.95).setFriction(0.85);
   } else if (shape === 'cup') {
     label = '杯子';
     y = 0.52;
     group.add(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.34, 1.05, 7), new THREE.MeshStandardMaterial({ color: 0xf4f1e4, roughness: 0.78 })));
+    const handle = new THREE.Mesh(
+      new THREE.TorusGeometry(0.2, 0.045, 5, 8, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0xf4f1e4, roughness: 0.78 })
+    );
+    handle.position.set(0.34, 0.02, 0);
+    handle.rotation.y = Math.PI / 2;
+    handle.rotation.z = Math.PI / 2;
+    group.add(handle);
     colliderDesc = RAPIER.ColliderDesc.cylinder(0.52, 0.42).setFriction(0.8);
   } else {
     label = '鉛筆盒';
@@ -1132,7 +1196,13 @@ function addCheckpoint(id: string, x: number, z: number): void {
 
 function addKey(id: string, x: number, z: number): void {
   const group = new THREE.Group();
-  const material = new THREE.MeshStandardMaterial({ color: 0xffd447, roughness: 0.4, metalness: 0.2 });
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xffd447,
+    emissive: 0xffc24a,
+    emissiveIntensity: 0.55,
+    roughness: 0.35,
+    metalness: 0.18
+  });
   const bow = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.06, 4, 6), material);
   const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.48), material);
   shaft.position.z = 0.28;
@@ -1149,7 +1219,12 @@ function addFinish(id: string, x: number, z: number): void {
   const y = 0.98;
   const mesh = new THREE.Mesh(
     new THREE.TorusGeometry(0.92, 0.12, 5, 8),
-    new THREE.MeshStandardMaterial({ color: 0x67db73, roughness: 0.48 })
+    new THREE.MeshStandardMaterial({
+      color: 0x67db73,
+      emissive: 0x3cae55,
+      emissiveIntensity: 0.35,
+      roughness: 0.42
+    })
   );
   mesh.position.set(x, y, z);
   own(mesh);
@@ -1179,7 +1254,13 @@ function addPocket(spans: Span[], index: number, side: 1 | -1, theme: PortalThem
   const group = new THREE.Group();
   const pack = new THREE.Mesh(
     new THREE.BoxGeometry(0.62, 0.86, 0.12),
-    new THREE.MeshStandardMaterial({ color: 0xffcf33, roughness: 0.45, metalness: 0.12 })
+    new THREE.MeshStandardMaterial({
+      color: 0xffcf33,
+      emissive: 0xffc107,
+      emissiveIntensity: 0.75,
+      roughness: 0.38,
+      metalness: 0.16
+    })
   );
   const band = new THREE.Mesh(
     new THREE.BoxGeometry(0.66, 0.16, 0.14),
@@ -1282,16 +1363,23 @@ function take(record: BodyRecord, hide: boolean): void {
 
 function createBall(spawn: THREE.Vector3): void {
   const sticky = themes[appState.portal].sticky;
+  squash = 1;
+  lastVy = 0;
+  ballRig = new THREE.Group();
   ballMesh = new THREE.Mesh(
-    new THREE.DodecahedronGeometry(BALL_R, 0),
-    new THREE.MeshStandardMaterial({
+    new THREE.SphereGeometry(BALL_R, 28, 20),
+    new THREE.MeshPhysicalMaterial({
       color: profile.skins.includes('goji-berry') ? 0xc72e5b : 0xf3544c,
-      roughness: 0.6
+      roughness: 0.22,
+      metalness: 0.04,
+      clearcoat: 0.72,
+      clearcoatRoughness: 0.22
     })
   );
   ballMesh.castShadow = true;
-  ballMesh.position.copy(spawn);
-  loaderGroup.add(ballMesh);
+  ballRig.add(ballMesh);
+  ballRig.position.copy(spawn);
+  loaderGroup.add(ballRig);
   ballBody = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(spawn.x, spawn.y, spawn.z)
@@ -1301,7 +1389,7 @@ function createBall(spawn: THREE.Vector3): void {
       .setCcdEnabled(true)
   );
   world.createCollider(
-    RAPIER.ColliderDesc.ball(BALL_R).setDensity(1.15).setFriction(sticky ? 1.35 : 0.9).setRestitution(0.02),
+    RAPIER.ColliderDesc.ball(BALL_R).setDensity(1.15).setFriction(sticky ? 1.35 : 0.9).setRestitution(0.04),
     ballBody
   );
 }
@@ -1318,11 +1406,14 @@ function syncPushers(): void {
 }
 
 function renderScene(delta: number): void {
-  if (ballBody && ballMesh) {
+  if (hitstop <= 0) updateShards(delta);
+  if (ballBody && ballRig && ballMesh) {
     const pos = copyVec(ballBody.translation());
     const rot = copyQuat(ballBody.rotation());
-    ballMesh.position.set(pos.x, pos.y, pos.z);
+    const vel = copyVec(ballBody.linvel());
+    ballRig.position.set(pos.x, pos.y, pos.z);
     ballMesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
+    settleBall(pos, vel, delta);
     const now = performance.now();
     for (const record of records) {
       if (!record.mesh.visible) continue;
@@ -1333,23 +1424,50 @@ function renderScene(delta: number): void {
         record.mesh.position.y = record.restY + Math.sin(now * 0.003 + record.phase) * 0.1;
       }
     }
-    cameraTarget.set(pos.x * 0.18, pos.y + 7.4, pos.z + 10.6);
-    camera.position.lerp(cameraTarget, 1 - Math.exp(-4.5 * delta));
-    lookTarget.set(pos.x * 0.2, pos.y + 0.15, pos.z - 2.6);
-    camera.lookAt(lookTarget);
-    sunTarget.position.set(pos.x, pos.y, pos.z);
-    sun.position.set(pos.x - 8, pos.y + 14, pos.z + 8);
+    aimCamera(pos, vel, delta, false);
   }
-  renderer.render(scene, camera);
+  composer.render(delta);
 }
 
 function placeCamera(): void {
   if (!ballBody) return;
   const pos = copyVec(ballBody.translation());
-  camera.position.set(pos.x * 0.18, pos.y + 7.4, pos.z + 10.6);
-  camera.lookAt(pos.x * 0.2, pos.y + 0.15, pos.z - 2.6);
+  const vel = copyVec(ballBody.linvel());
+  aimCamera(pos, vel, 0, true);
+}
+
+function aimCamera(pos: Vec3, vel: Vec3, delta: number, snap: boolean): void {
+  const speed = Math.hypot(vel.x, vel.z);
+  const ahead = speed > 0.4 ? Math.min(1.5, (speed - 0.4) * 0.55) : 0;
+  const scale = speed > 0.05 ? ahead / speed : 0;
+  const ax = vel.x * scale;
+  const az = vel.z * scale;
+  cameraTarget.set(pos.x * 0.14 + ax * 0.2, pos.y + 7.2, pos.z + 10.35 + az * 0.15);
+  lookTarget.set(pos.x * 0.16 + ax, pos.y + 0.18, pos.z - 2.15 + az);
+  if (snap) camera.position.copy(cameraTarget);
+  else camera.position.lerp(cameraTarget, 1 - Math.exp(-4.2 * delta));
+  if (shake > 0 && !snap) {
+    camera.position.x += (Math.random() - 0.5) * shake;
+    camera.position.y += (Math.random() - 0.5) * shake * 0.55;
+    shake = Math.max(0, shake - delta * 2.4);
+  }
+  camera.lookAt(lookTarget);
   sunTarget.position.set(pos.x, pos.y, pos.z);
   sun.position.set(pos.x - 8, pos.y + 14, pos.z + 8);
+}
+
+function settleBall(pos: Vec3, vel: Vec3, delta: number): void {
+  if (!ballRig) return;
+  const grounded = pos.y < REST_Y + 0.2;
+  if (grounded && lastVy < -1.6 && vel.y > -0.4 && landCooldown <= 0) {
+    squash = 0.76;
+    landCooldown = 0.4;
+    playJuice('land');
+  }
+  lastVy = vel.y;
+  squash += (1 - squash) * (1 - Math.exp(-11 * delta));
+  const wide = 1 / Math.sqrt(squash);
+  ballRig.scale.set(wide, squash, wide);
 }
 
 function addCoins(amount: number, message: string): void {
@@ -1498,7 +1616,7 @@ function saveProfile(): void {
 function resize(): void {
   const width = window.innerWidth;
   const height = window.innerHeight;
-  renderer.setSize(width, height, false);
+  composer.setSize(width, height, false);
   camera.fov = width < 720 ? 58 : 46;
   camera.aspect = width / Math.max(height, 1);
   camera.updateProjectionMatrix();
@@ -1510,6 +1628,94 @@ function copyVec(value: Vec3): Vec3 {
 
 function copyQuat(value: { x: number; y: number; z: number; w: number }): { x: number; y: number; z: number; w: number } {
   return { x: value.x, y: value.y, z: value.z, w: value.w };
+}
+
+function burst(origin: Vec3, color: number): void {
+  hitstop = 0.07;
+  shake = Math.max(shake, 0.16);
+  for (let index = 0; index < 6; index += 1) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.14, 0.14),
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4, roughness: 0.5 })
+    );
+    mesh.position.set(origin.x + (index - 2.5) * 0.05, Math.max(origin.y, 0.45), origin.z);
+    loaderGroup.add(mesh);
+    shards.push({
+      mesh,
+      velocity: new THREE.Vector3((Math.random() - 0.5) * 3.2, 1.7 + Math.random() * 2.1, (Math.random() - 0.5) * 3.2),
+      life: 0.42
+    });
+  }
+}
+
+function updateShards(delta: number): void {
+  for (let index = shards.length - 1; index >= 0; index -= 1) {
+    const shard = shards[index];
+    if (!shard) continue;
+    shard.life -= delta;
+    shard.velocity.y -= 14 * delta;
+    shard.mesh.position.addScaledVector(shard.velocity, delta);
+    shard.mesh.rotation.x += delta * 7;
+    shard.mesh.rotation.z += delta * 5;
+    if (shard.life > 0) continue;
+    shard.mesh.geometry.dispose();
+    const material = shard.mesh.material;
+    if (material instanceof THREE.Material) material.dispose();
+    shard.mesh.removeFromParent();
+    shards.splice(index, 1);
+  }
+}
+
+function wakeAudio(): void {
+  const Ctx = window.AudioContext;
+  if (!Ctx) return;
+  if (!audio) audio = new Ctx();
+  if (audio.state === 'suspended') void audio.resume();
+}
+
+function playJuice(kind: 'coin' | 'break' | 'bump' | 'key' | 'land'): void {
+  if (!audio || audio.state !== 'running') return;
+  if (kind === 'break') {
+    playNoise(0.12, 0.07);
+    return;
+  }
+  const tone = {
+    coin: { freq: 880, end: 1320, dur: 0.09, type: 'triangle' as OscillatorType, vol: 0.07 },
+    bump: { freq: 150, end: 80, dur: 0.08, type: 'sine' as OscillatorType, vol: 0.06 },
+    key: { freq: 660, end: 1040, dur: 0.14, type: 'triangle' as OscillatorType, vol: 0.07 },
+    land: { freq: 240, end: 120, dur: 0.06, type: 'sine' as OscillatorType, vol: 0.04 }
+  }[kind];
+  const now = audio.currentTime;
+  const osc = audio.createOscillator();
+  const gain = audio.createGain();
+  osc.type = tone.type;
+  osc.frequency.setValueAtTime(tone.freq, now);
+  osc.frequency.exponentialRampToValueAtTime(tone.end, now + tone.dur);
+  gain.gain.setValueAtTime(tone.vol, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + tone.dur);
+  osc.connect(gain);
+  gain.connect(audio.destination);
+  osc.start(now);
+  osc.stop(now + tone.dur + 0.02);
+}
+
+function playNoise(duration: number, volume: number): void {
+  if (!audio) return;
+  const length = Math.max(1, Math.floor(audio.sampleRate * duration));
+  const buffer = audio.createBuffer(1, length, audio.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < length; index += 1) {
+    data[index] = (Math.random() * 2 - 1) * (1 - index / length);
+  }
+  const now = audio.currentTime;
+  const source = audio.createBufferSource();
+  const gain = audio.createGain();
+  source.buffer = buffer;
+  gain.gain.setValueAtTime(volume, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  source.connect(gain);
+  gain.connect(audio.destination);
+  source.start(now);
 }
 
 function mulberry32(seedKey: string): () => number {
