@@ -98,7 +98,7 @@ const DECK_Y = -0.24;
 const DECK_H = 0.48;
 const BALL_R = 0.56;
 const REST_Y = BALL_R + 0.03;
-const BREAK_SPEED = 1.7;
+const BREAK_SPEED = 2.2;
 const STORAGE_KEY = 'gojiland_rollance_profile_v1';
 
 const themes: Record<PortalId, PortalTheme> = {
@@ -164,11 +164,11 @@ const levels: Record<PortalId, LevelPlan> = {
     posts: true,
     blobs: false,
     spans: [
-      { x: 0, width: 11, length: 14 },
-      { x: 0, width: 9, length: 14 },
-      { x: -1.2, width: 8, length: 14 },
-      { x: 1, width: 7.4, length: 14 },
-      { x: 0, width: 10, length: 14 }
+      { x: 0, width: 9.2, length: 14 },
+      { x: 0, width: 7.6, length: 14 },
+      { x: -1.2, width: 6.8, length: 14 },
+      { x: 1, width: 6.6, length: 14 },
+      { x: 0, width: 8.2, length: 14 }
     ],
     props: [
       { kind: 'coin', index: 0, z: 3, x: -2.2 },
@@ -182,9 +182,9 @@ const levels: Record<PortalId, LevelPlan> = {
       { kind: 'checkpoint', index: 2, z: 3, x: 0 },
       { kind: 'coin', index: 2, z: 0, x: -1.5 },
       { kind: 'break', index: 2, z: -2, x: 1.5 },
-      { kind: 'book', index: 2, z: -4.5, x: -1.7, yaw: 0.4 },
-      { kind: 'coin', index: 3, z: 3, x: 1.2 },
-      { kind: 'cup', index: 3, z: -1, x: 1.7 },
+      { kind: 'book', index: 2, z: -4.5, x: -0.95, yaw: 0.4 },
+      { kind: 'coin', index: 3, z: 3, x: 1.4 },
+      { kind: 'cup', index: 3, z: -1, x: -0.9 },
       { kind: 'coin', index: 4, z: 3, x: 0.4 },
       { kind: 'key', index: 4, z: 0.5, x: -1.6 },
       { kind: 'finish', index: 4, z: -4, x: 0 }
@@ -195,11 +195,11 @@ const levels: Record<PortalId, LevelPlan> = {
     posts: true,
     blobs: false,
     spans: [
-      { x: 0, width: 7.5, length: 10 },
-      { x: 0, width: 4.2, length: 12 },
-      { x: -1.6, width: 4, length: 12 },
-      { x: 1.6, width: 4, length: 12 },
-      { x: 0, width: 7, length: 10 }
+      { x: 0, width: 6.2, length: 10 },
+      { x: 0, width: 3.8, length: 12 },
+      { x: -1.5, width: 3.6, length: 12 },
+      { x: 1.5, width: 3.6, length: 12 },
+      { x: 0, width: 6, length: 10 }
     ],
     props: [
       { kind: 'coin', index: 0, z: 2, x: -1.5 },
@@ -223,25 +223,25 @@ const levels: Record<PortalId, LevelPlan> = {
     posts: false,
     blobs: false,
     spans: [
-      { x: 0, width: 8.4, length: 12 },
-      { x: 0, width: 8.4, length: 14 },
-      { x: 0, width: 8.4, length: 14 },
-      { x: 0, width: 8.4, length: 12 }
+      { x: 0, width: 7.2, length: 12 },
+      { x: 0, width: 7.2, length: 14 },
+      { x: 0, width: 7.2, length: 14 },
+      { x: 0, width: 7.2, length: 12 }
     ],
     props: [
       { kind: 'break', index: 0, z: -1, x: 0 },
-      { kind: 'coin', index: 0, z: 3, x: -2.3 },
-      { kind: 'coin', index: 0, z: 3, x: 2.3 },
+      { kind: 'coin', index: 0, z: 3, x: -2.1 },
+      { kind: 'coin', index: 0, z: 3, x: 2.1 },
       { kind: 'checkpoint', index: 1, z: 4, x: 0 },
-      { kind: 'book', index: 1, z: 0.5, x: -1.25, yaw: 0.45 },
-      { kind: 'coin', index: 1, z: -3.5, x: 2.2 },
-      { kind: 'pencil', index: 2, z: 3, x: -1.3 },
-      { kind: 'cup', index: 2, z: -1.5, x: 1.25 },
-      { kind: 'coin', index: 2, z: -4, x: -2.2 },
-      { kind: 'book', index: 3, z: 3, x: 1.2, yaw: -0.4 },
-      { kind: 'coin', index: 3, z: 1, x: -2.2 },
-      { kind: 'cup', index: 3, z: -0.5, x: -1.2 },
-      { kind: 'key', index: 3, z: -2.2, x: 1.4 },
+      { kind: 'book', index: 1, z: 0.5, x: -1.15, yaw: 0.35 },
+      { kind: 'coin', index: 1, z: -3.5, x: 1.9 },
+      { kind: 'pencil', index: 2, z: 3, x: -0.9 },
+      { kind: 'cup', index: 2, z: -1.5, x: 1.7 },
+      { kind: 'coin', index: 2, z: -4, x: -2 },
+      { kind: 'book', index: 3, z: 3, x: 1.55, yaw: -0.25 },
+      { kind: 'coin', index: 3, z: 1, x: -1.8 },
+      { kind: 'cup', index: 3, z: -0.5, x: -1.55 },
+      { kind: 'key', index: 3, z: -2.2, x: 0 },
       { kind: 'finish', index: 3, z: -4.2, x: 0 }
     ],
     pocket: { index: 2, side: -1 }
@@ -250,10 +250,10 @@ const levels: Record<PortalId, LevelPlan> = {
     posts: false,
     blobs: true,
     spans: [
-      { x: 0, width: 8, length: 12 },
-      { x: 1.4, width: 6.5, length: 14 },
-      { x: -1.4, width: 6.5, length: 14 },
-      { x: 0, width: 8, length: 12 }
+      { x: 0, width: 7.2, length: 12 },
+      { x: 1.6, width: 5.4, length: 14 },
+      { x: -1.6, width: 5.4, length: 14 },
+      { x: 0, width: 7, length: 12 }
     ],
     props: [
       { kind: 'coin', index: 0, z: 2, x: -1.4 },
@@ -703,8 +703,8 @@ function substep(dt: number): void {
 }
 
 function motionTune(): { forceX: number; forceZ: number; max: number; coast: number } {
-  if (themes[appState.portal].sticky) return { forceX: 6.4, forceZ: 7.4, max: 1.85, coast: 3.4 };
-  return { forceX: 3.8, forceZ: 5.1, max: 2.55, coast: 1.85 };
+  if (themes[appState.portal].sticky) return { forceX: 8.2, forceZ: 9.6, max: 2.35, coast: 3.6 };
+  return { forceX: 6.4, forceZ: 8.6, max: 3.7, coast: 2.15 };
 }
 
 function scanPickups(pos: Vec3, speed: number): void {
@@ -1276,7 +1276,7 @@ function addPocket(spans: Span[], index: number, side: 1 | -1, theme: PortalThem
 }
 
 function addPosts(pose: { x: number; z: number; width: number }): void {
-  if (pose.width < 7.2) return;
+  if (pose.width < 6.5) return;
   const material = new THREE.MeshStandardMaterial({ color: 0x8b623f, roughness: 0.9 });
   for (const side of [-1, 1]) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 0.9, 5), material);
@@ -1383,8 +1383,8 @@ function createBall(spawn: THREE.Vector3): void {
   ballBody = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(spawn.x, spawn.y, spawn.z)
-      .setLinearDamping(sticky ? 2.7 : 0.62)
-      .setAngularDamping(sticky ? 2.2 : 0.78)
+      .setLinearDamping(sticky ? 3.1 : 0.42)
+      .setAngularDamping(sticky ? 2.4 : 0.62)
       .setCanSleep(false)
       .setCcdEnabled(true)
   );
