@@ -2,6 +2,7 @@ import './styles.css';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { BloomEffect, EffectComposer, EffectPass, RenderPass, VignetteEffect } from 'postprocessing';
 import * as THREE from 'three';
+import { cloneKenney, hasKenney, isSharedKenney, loadKenney, type KenneyName } from './kenney';
 
 type StoryPortal = 'meadow' | 'sky' | 'home' | 'slime';
 type PortalId = StoryPortal | 'bonus';
@@ -479,6 +480,7 @@ resize();
 window.addEventListener('resize', resize);
 
 await (RAPIER.init as unknown as (options?: object) => Promise<void>)();
+await loadKenney(import.meta.env.BASE_URL);
 world = new RAPIER.World({ x: 0, y: -12.5, z: 0 });
 startAttempt('meadow');
 startButton.disabled = false;
@@ -953,7 +955,7 @@ function buildWorld(portal: PortalId, spawn: THREE.Vector3): void {
   level.props.forEach((prop, ordinal) => addProp(portal, level.spans, prop, ordinal));
   if (portal === 'bonus') addBonusCoins(level.spans);
   if (level.pocket) addPocket(level.spans, level.pocket.index, level.pocket.side, theme, portal);
-  addScenery(theme, portal);
+  addScenery(portal);
   createBall(spawn);
   placeCamera();
   updatePortalCopy();
@@ -972,9 +974,11 @@ function clearWorld(): void {
   const materials = new Set<THREE.Material>();
   loaderGroup.traverse((object) => {
     if (object instanceof THREE.Mesh) {
-      object.geometry.dispose();
+      if (!isSharedKenney(object.geometry)) object.geometry.dispose();
       const mats = Array.isArray(object.material) ? object.material : [object.material];
-      for (const material of mats) materials.add(material);
+      for (const material of mats) {
+        if (!isSharedKenney(material)) materials.add(material);
+      }
     }
   });
   for (const material of materials) material.dispose();
@@ -1116,6 +1120,55 @@ function addHousehold(id: string, x: number, z: number, shape: 'book' | 'cup' | 
   let colliderDesc: RAPIER.ColliderDesc;
   let label = '東西';
   let y = 0.2;
+  if (shape === 'book' && hasKenney('books')) {
+    label = '書本';
+    const visual = cloneKenney('books', 1.05);
+    if (visual) {
+      group.add(visual);
+      visual.updateMatrixWorld(true);
+      const size = new THREE.Box3().setFromObject(visual).getSize(new THREE.Vector3());
+      group.position.set(x, 0, z);
+      group.rotation.y = yaw;
+      own(group);
+      const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
+      const body = world.createRigidBody(
+        RAPIER.RigidBodyDesc.fixed()
+          .setTranslation(x, size.y / 2, z)
+          .setRotation({ x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w })
+      );
+      const collider = world.createCollider(
+        RAPIER.ColliderDesc.cuboid(size.x / 2, size.y / 2, size.z / 2).setFriction(0.9),
+        body
+      );
+      remember({ id, kind: 'household', mesh: group, body, collider, restY: size.y * 0.5, reach: 1.2, value: 0, label });
+      return;
+    }
+  }
+  if (shape === 'cup' && hasKenney('mug')) {
+    label = '杯子';
+    const visual = cloneKenney('mug', 0.92);
+    if (visual) {
+      group.add(visual);
+      visual.updateMatrixWorld(true);
+      const size = new THREE.Box3().setFromObject(visual).getSize(new THREE.Vector3());
+      group.position.set(x, 0, z);
+      group.rotation.y = yaw;
+      own(group);
+      const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
+      const radius = Math.max(size.x, size.z) / 2;
+      const body = world.createRigidBody(
+        RAPIER.RigidBodyDesc.fixed()
+          .setTranslation(x, size.y / 2, z)
+          .setRotation({ x: quaternion.x, y: quaternion.y, z: quaternion.z, w: quaternion.w })
+      );
+      const collider = world.createCollider(
+        RAPIER.ColliderDesc.cylinder(size.y / 2, radius).setFriction(0.85),
+        body
+      );
+      remember({ id, kind: 'household', mesh: group, body, collider, restY: size.y * 0.55, reach: 1.25, value: 0, label });
+      return;
+    }
+  }
   if (shape === 'book') {
     label = '書本';
     y = 0.16;
@@ -1300,7 +1353,9 @@ function addBlobs(pose: { x: number; z: number; width: number }, color: number):
   }
 }
 
-function addScenery(theme: PortalTheme, portal: PortalId): void {
+function addScenery(portal: PortalId): void {
+  const theme = themes[portal];
+  const level = levels[portal];
   const ground = new THREE.Mesh(
     new THREE.CylinderGeometry(46, 58, 2.2, 8),
     new THREE.MeshStandardMaterial({ color: theme.ground, roughness: 0.96 })
@@ -1309,12 +1364,97 @@ function addScenery(theme: PortalTheme, portal: PortalId): void {
   ground.receiveShadow = true;
   loaderGroup.add(ground);
   const random = mulberry32(portal);
-  for (let index = 0; index < 16; index += 1) {
+  const dressing = scenerySet(portal);
+  level.spans.forEach((span, index) => {
+    const pose = spanPose(level.spans, index);
+    for (const side of [-1, 1] as const) {
+      if (level.pocket?.index === index && level.pocket.side === side) continue;
+      const edge = pose.x + side * (pose.width / 2);
+      const tree = pickKenney(dressing.trees, random);
+      placeKenney(tree, edge + side * (2.25 + random() * 0.7), pose.z + (random() - 0.5) * span.length * 0.5, random() * Math.PI * 2, sceneryHeight(tree, random));
+      const accent = pickKenney(dressing.accent, random);
+      placeKenney(accent, edge + side * (0.85 + random() * 0.25), pose.z + (random() - 0.5) * span.length * 0.72, random() * Math.PI * 2, sceneryHeight(accent, random));
+      if (random() > 0.4) {
+        const small = pickKenney(dressing.small, random);
+        placeKenney(small, edge + side * (1.45 + random() * 0.4), pose.z + (random() - 0.5) * span.length * 0.35, random() * Math.PI * 2, sceneryHeight(small, random));
+      }
+    }
+  });
+  for (let index = 0; index < 12; index += 1) {
     const side = index % 2 === 0 ? -1 : 1;
-    const tree = makeTree(theme.accent, 0.8 + random() * 1.1);
-    tree.position.set(side * (12 + random() * 16), -14.6, 10 - random() * 78);
-    loaderGroup.add(tree);
+    const tree = pickKenney(dressing.trees, random);
+    const model = cloneKenney(tree, 4.2 + random() * 1.8);
+    if (!model) {
+      const fallback = makeTree(theme.accent, 0.8 + random() * 1.1);
+      fallback.position.set(side * (14 + random() * 16), -14.6, 10 - random() * 78);
+      loaderGroup.add(fallback);
+      continue;
+    }
+    model.position.set(side * (13 + random() * 18), -14.9, 12 - random() * 80);
+    model.rotation.y = random() * Math.PI * 2;
+    loaderGroup.add(model);
   }
+}
+
+function scenerySet(portal: PortalId): { trees: KenneyName[]; small: KenneyName[]; accent: KenneyName[] } {
+  if (portal === 'sky') {
+    return {
+      trees: ['tree_pineRoundA', 'tree_default'],
+      small: ['rock_smallA', 'rock_largeA', 'log'],
+      accent: ['grass', 'flower_yellowA']
+    };
+  }
+  if (portal === 'home') {
+    return {
+      trees: ['pottedPlant', 'plantSmall1'],
+      small: ['cardboardBoxClosed', 'lampRoundTable', 'plant_bushSmall'],
+      accent: ['flower_redA', 'flower_purpleA', 'grass']
+    };
+  }
+  if (portal === 'slime') {
+    return {
+      trees: ['tree_fat', 'stump_round'],
+      small: ['mushroom_redGroup', 'plant_bush', 'log'],
+      accent: ['mushroom_red', 'grass_large', 'plant_bushSmall']
+    };
+  }
+  if (portal === 'bonus') {
+    return {
+      trees: ['tree_oak', 'tree_default'],
+      small: ['plant_bush', 'rock_smallA'],
+      accent: ['flower_yellowA', 'flower_redA', 'flower_purpleA', 'grass']
+    };
+  }
+  return {
+    trees: ['tree_oak', 'tree_default', 'tree_fat'],
+    small: ['plant_bush', 'plant_bushDetailed', 'rock_smallA'],
+    accent: ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'grass', 'grass_large']
+  };
+}
+
+function pickKenney(names: KenneyName[], random: () => number): KenneyName {
+  const choice = names[Math.floor(random() * names.length)];
+  return choice ?? 'tree_oak';
+}
+
+function sceneryHeight(name: KenneyName, random: () => number): number {
+  if (name.startsWith('tree_')) return 2.4 + random() * 1.05;
+  if (name.startsWith('plant_bush')) return 0.72 + random() * 0.38;
+  if (name.startsWith('flower_') || name.startsWith('grass')) return 0.48 + random() * 0.22;
+  if (name.startsWith('rock_') || name === 'stump_round' || name === 'log') return 0.5 + random() * 0.32;
+  if (name.startsWith('mushroom')) return 0.46 + random() * 0.22;
+  if (name === 'pottedPlant' || name === 'plantSmall1') return 1.05 + random() * 0.3;
+  if (name === 'cardboardBoxClosed') return 0.48 + random() * 0.16;
+  if (name === 'lampRoundTable') return 0.72 + random() * 0.12;
+  return 1;
+}
+
+function placeKenney(name: KenneyName, x: number, z: number, yaw: number, height: number): void {
+  const model = cloneKenney(name, height);
+  if (!model) return;
+  model.position.set(x, 0, z);
+  model.rotation.y = yaw;
+  loaderGroup.add(model);
 }
 
 function makeTree(accent: number, scale: number): THREE.Group {

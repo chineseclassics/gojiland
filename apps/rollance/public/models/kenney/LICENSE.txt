@@ -1,0 +1,11 @@
+Kenney game assets used by Rollance.
+License: Creative Commons Zero (CC0) 1.0
+https://creativecommons.org/publicdomain/zero/1.0/
+Free to use in personal, educational, and commercial projects.
+Credit to Kenney (https://kenney.nl) is appreciated and not required.
+Do not use the Kenney logo.
+
+Packs:
+- Nature Kit: trees, bushes, flowers, grass, rocks, mushrooms, logs, stumps
+- Furniture Kit: books, potted plants, cardboard box, table lamp
+- Food Kit: mug (Textures/colormap.png)
